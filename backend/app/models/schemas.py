@@ -9,9 +9,12 @@ from pydantic import BaseModel, Field
 
 class ProjectCreate(BaseModel):
     name: str
-    source_type: str = "upload"  # upload | git | demo
+    source_type: str = "upload"  # upload | dataset | paste | git | demo
     language: str | None = None
     repo_url: str | None = None
+    filename: str | None = None
+    content: str | None = None
+    error_trace: str | None = None
 
 
 class ProjectResponse(BaseModel):
@@ -21,6 +24,8 @@ class ProjectResponse(BaseModel):
     source_type: str
     status: str
     created_at: str
+    filename: str | None = None
+    files: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class BugSummary(BaseModel):

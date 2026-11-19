@@ -28,6 +28,45 @@ async def test_list_projects(async_client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_create_user_project_and_filter(async_client: AsyncClient):
+    payload = {
+        "name": "Custom User Project",
+        "source_type": "upload",
+        "language": "python",
+        "filename": "custom_script.py",
+        "content": "def add(a, b):\n    return a + b\n",
+        "error_trace": "TypeError: unsupported operand",
+    }
+    create_res = await async_client.post("/api/v1/projects", json=payload)
+    assert create_res.status_code == 200
+    created = create_res.json()
+    assert created["name"] == "Custom User Project"
+    assert created["filename"] == "custom_script.py"
+    assert len(created["files"]) == 1
+    assert created["files"][0]["content"] == "def add(a, b):\n    return a + b\n"
+    new_id = created["id"]
+
+    # Fetch by ID
+    get_res = await async_client.get(f"/api/v1/projects/{new_id}")
+    assert get_res.status_code == 200
+    fetched = get_res.json()
+    assert fetched["id"] == new_id
+    assert fetched["name"] == "Custom User Project"
+
+    # User uploads return 0 fabricated bugs in P0
+    bugs_res = await async_client.get(f"/api/v1/projects/{new_id}/bugs")
+    assert bugs_res.status_code == 200
+    assert bugs_res.json() == []
+
+    # Test filtering
+    user_list = await async_client.get("/api/v1/projects?filter_mode=user")
+    assert user_list.status_code == 200
+    user_projects = user_list.json()
+    assert any(p["id"] == new_id for p in user_projects)
+    assert all(p["source_type"] != "demo" for p in user_projects)
+
+
+@pytest.mark.asyncio
 async def test_get_project_bugs(async_client: AsyncClient):
     response = await async_client.get("/api/v1/projects/demo-proj-001/bugs")
     assert response.status_code == 200
