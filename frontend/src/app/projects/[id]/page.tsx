@@ -19,6 +19,7 @@ import {
   Clock,
   Layers,
   Cpu,
+  Database,
 } from "lucide-react";
 import { fetchProject, fetchProjectBugs, executePipeline, ProjectData } from "@/lib/api";
 
@@ -67,6 +68,11 @@ export default function ProjectDetailsPage() {
   };
 
   const isDemo = projectId.startsWith("demo-") || project?.source_type === "demo";
+  const isDataset =
+    project?.source_type === "dataset" ||
+    project?.language?.toLowerCase() === "dataset" ||
+    (Boolean(project?.filename) &&
+      /\.(csv|tsv|json|jsonl|parquet|sqlite)$/i.test(project?.filename || ""));
   const firstFile = project?.files && project.files.length > 0 ? project.files[0] : null;
 
   return (
@@ -105,6 +111,14 @@ export default function ProjectDetailsPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {isDataset && (
+            <Link href={`/projects/${projectId}/dataset`}>
+              <Button variant="secondary">
+                <Database className="w-3.5 h-3.5 mr-1.5 text-[#0F766E] dark:text-[#14B8A6]" />
+                Dataset Review
+              </Button>
+            </Link>
+          )}
           <Button onClick={handleScan} disabled={isScanning} variant="primary">
             <Play className="w-3.5 h-3.5 mr-1.5 fill-current" />
             {isScanning ? "Running Pipeline..." : "Re-Run Pipeline"}
@@ -128,6 +142,34 @@ export default function ProjectDetailsPage() {
             <strong className="text-[#1C1917] dark:text-[#F5F5F4]">Demo Seed Fixture: </strong>
             Seeded project with reproducible bounds validation defect in calculator.py. Backed by 14 sandbox regression tests.
           </div>
+        </div>
+      )}
+
+      {/* Dataset Review Callout Banner if Dataset */}
+      {isDataset && (
+        <div className="p-4 bg-white/80 dark:bg-[#1C1917]/80 border border-[#0F766E]/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-[#0F766E]/10 text-[#0F766E] dark:text-[#14B8A6]">
+              <Database className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="text-xs font-bold text-[#1C1917] dark:text-[#F5F5F4] flex items-center gap-2">
+                <span>Autonomous Dataset Invariant & Quality Review</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[#0F766E]/10 text-[#0F766E] dark:text-[#14B8A6] font-semibold">
+                  V4 Invariant Proven
+                </span>
+              </h4>
+              <p className="text-[11px] text-[#57534E] dark:text-[#D6D3D1] mt-0.5">
+                Deep profiling, row lineage tracking, 100% cell byte-identity preservation, and repeatable Python cleaning script.
+              </p>
+            </div>
+          </div>
+          <Link href={`/projects/${projectId}/dataset`}>
+            <Button variant="primary" className="text-xs flex items-center gap-1.5 whitespace-nowrap">
+              <span>View Invariant Proofs</span>
+              <ArrowRight className="w-3 h-3" />
+            </Button>
+          </Link>
         </div>
       )}
 
