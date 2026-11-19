@@ -4,6 +4,34 @@ All notable changes to AutoPatch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Phase P5 - Fix Explanation Engine Complete] - 2026-11-19
+
+### Added
+- **Crash & Defect Localisation Engine (`app.patcher.explanation`)**:
+  - Distinguishes `origin_line` (where untrusted/malformed data is ingested) from `crash_line` (where computation or runtime fails).
+  - Categorizes failure types (`logic_boundary_defect`, `zero_division_error`, `null_pointer_dereference`, `buffer_boundary_overflow`, `unvalidated_command_injection`).
+  - Synthesizes minimal trigger inputs (e.g. `{"marks": -5.0}`) and maps stack frames to source file locations.
+- **Variable Execution Trace Timeline & Backward Data-Flow Slice**:
+  - Step-by-step chronological execution timeline tracing variables along the failing path: external input ingestion -> propagation -> crash/exception.
+  - Backward data-flow slice recording data and control dependencies directly influencing the defect.
+- **Three-Tiered Switchable Explanations**:
+  - *Beginner*: Plain-language analogy without technical jargon.
+  - *Developer*: Precise code terms, data-flow reasoning, and precondition invariants.
+  - *Manager*: Business risk, impact scope, and ROI summary in two lines.
+- **Per-Hunk Explanation Cards**:
+  - Detailed cards for every modified hunk: original code, replacement code, why the original was wrong, why the replacement fixes it, what would still fail without it, blast radius side effects, and rejected alternatives.
+- **Explanation Validator Agent (`app.patcher.explanation_validator`)**:
+  - Self-checking verification agent ensuring cited file line numbers are within file bounds, trigger inputs are cited, origin/crash lines are referenced, and replacement rationale matches the actual patch diff.
+  - Unproven or unverified explanations are tagged `Hypothesis` and penalized on confidence.
+- **Interactive UI & Scoped Flaw Assistant (`/bugs/[id]`)**:
+  - Clickable interactive stack trace frames highlighting origin line (amber) and crash line (red).
+  - Variable trace timeline cards displaying step-by-step state mutations.
+  - Interactive "Ask AutoPatch" scoped Q&A assistant (`POST /bugs/{id}/ask`) answering questions with codebase context.
+  - 1-click Markdown Bug Report export (`GET /bugs/{id}/export-markdown`).
+- **Comprehensive Test Suite**:
+  - 95 backend pytest tests passing with 100% clean Ruff linting.
+  - Zero TypeScript compile errors and passing demo guard audit.
+
 ## [Phase P4 - Universal Dataset Engine Complete] - 2026-11-19
 
 ### Added
