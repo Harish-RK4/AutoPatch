@@ -1,0 +1,118 @@
+# ==============================================================================
+# AutoPatch Role-Based LLM Routing Configuration
+# Maps each pipeline agent role to primary providers and fallback chains.
+# ==============================================================================
+
+routing:
+  # Long-context codebase scanning and initial AST analysis
+  scanner:
+    primary:
+      provider: gemini
+      model_env: GEMINI_MODEL
+    fallbacks:
+      - provider: openrouter
+        model_env: OPENROUTER_MODEL
+      - provider: groq
+        model_env: GROQ_MODEL
+      - provider: ollama
+        model_env: OLLAMA_MODEL
+
+  # Reproduction test generation (pytest / hypothesis / jest)
+  reproducer:
+    primary:
+      provider: mistral
+      model_env: MISTRAL_CODE_MODEL
+    fallbacks:
+      - provider: gemini
+        model_env: GEMINI_MODEL
+      - provider: groq
+        model_env: GROQ_MODEL
+      - provider: ollama
+        model_env: OLLAMA_MODEL
+
+  # Root-cause analysis and crash/origin line isolation
+  root_cause:
+    primary:
+      provider: gemini
+      model_env: GEMINI_MODEL
+    fallbacks:
+      - provider: groq
+        model_env: GROQ_MODEL
+      - provider: openrouter
+        model_env: OPENROUTER_MODEL
+      - provider: ollama
+        model_env: OLLAMA_MODEL
+
+  # Multi-candidate minimal patch synthesis
+  patcher:
+    primary:
+      provider: mistral
+      model_env: MISTRAL_CODE_MODEL
+    fallbacks:
+      - provider: groq
+        model_env: GROQ_MODEL
+      - provider: gemini
+        model_env: GEMINI_MODEL
+      - provider: ollama
+        model_env: OLLAMA_MODEL
+
+  # Independent patch critic agent (MUST differ from patcher primary)
+  critic:
+    primary:
+      provider: groq
+      model_env: GROQ_MODEL
+    fallbacks:
+      - provider: gemini
+        model_env: GEMINI_MODEL
+      - provider: openrouter
+        model_env: OPENROUTER_MODEL
+      - provider: ollama
+        model_env: OLLAMA_MODEL
+
+  # Three-tier explanation synthesis (Beginner, Developer, Manager)
+  explainer:
+    primary:
+      provider: gemini
+      model_env: GEMINI_MODEL
+    fallbacks:
+      - provider: groq
+        model_env: GROQ_MODEL
+      - provider: openrouter
+        model_env: OPENROUTER_MODEL
+      - provider: ollama
+        model_env: OLLAMA_MODEL
+
+  # Dataset repair and invariant rule generator
+  dataset_fixer:
+    primary:
+      provider: gemini
+      model_env: GEMINI_MODEL
+    fallbacks:
+      - provider: mistral
+        model_env: MISTRAL_CODE_MODEL
+      - provider: groq
+        model_env: GROQ_MODEL
+      - provider: ollama
+        model_env: OLLAMA_MODEL
+
+provider_limits:
+  gemini:
+    requests_per_minute: 15
+    tokens_per_minute: 1000000
+    requests_per_day: 1500
+  groq:
+    requests_per_minute: 30
+    tokens_per_minute: 6000
+    requests_per_day: 14400
+  mistral:
+    requests_per_minute: 5
+    tokens_per_minute: 50000
+    requests_per_day: 1000
+  openrouter:
+    requests_per_minute: 10
+    tokens_per_minute: 20000
+    requests_per_day: 200
+  ollama:
+    requests_per_minute: 60
+    tokens_per_minute: 200000
+    requests_per_day: 100000
