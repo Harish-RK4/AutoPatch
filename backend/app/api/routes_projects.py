@@ -83,11 +83,20 @@ async def create_project(payload: ProjectCreate):
     files = []
     if payload.filename or payload.content:
         resolved_path = payload.filename or f"snippet.{payload.language or 'py'}"
+        detected_lang = payload.language or "python"
+        lower_path = resolved_path.lower()
+        lower_content = (payload.content or "").lower()
+        if detected_lang in ("plaintext", "text", "unknown", ""):
+            if lower_path.endswith((".py", ".pyw")) or "python" in lower_path or any(kw in lower_content for kw in ("print(", "def ", "import ", "class ", "elif ")):
+                detected_lang = "python"
+            elif lower_path.endswith((".js", ".jsx", ".ts", ".tsx")) or any(kw in lower_content for kw in ("console.log", "function ", "const ", "let ")):
+                detected_lang = "javascript"
+
         files.append(
             {
                 "path": resolved_path,
                 "file_path": resolved_path,
-                "language": payload.language or "python",
+                "language": detected_lang,
                 "content": payload.content or "",
                 "error_trace": payload.error_trace or "",
             }
@@ -96,7 +105,7 @@ async def create_project(payload: ProjectCreate):
     project_record = {
         "id": new_id,
         "name": payload.name,
-        "language": payload.language or "Unknown",
+        "language": files[0]["language"] if files else (payload.language or "Unknown"),
         "source_type": payload.source_type,
         "status": "ready",
         "created_at": now_iso,
@@ -106,6 +115,21 @@ async def create_project(payload: ProjectCreate):
     }
 
     USER_PROJECTS.insert(0, project_record)
+
+    # Immediately execute autonomous pipeline on ingestion
+    if files:
+        is_ds = payload.source_type == "dataset" or project_record["language"] == "dataset"
+        if not is_ds:
+            try:
+                res = await run_autonomous_pipeline(
+                    project_id=new_id,
+                    project_name=payload.name,
+                    files=files,
+                )
+                project_record["status"] = "verified" if res.get("patches_count", 0) > 0 else "clean"
+                project_record["last_pipeline_run"] = res
+            except (RuntimeError, ValueError, KeyError):
+                pass
 
     return ProjectResponse(
         id=project_record["id"],
@@ -382,7 +406,19 @@ async def list_project_bugs(project_id: str):
     - User-uploaded projects return real detected flaws from autonomous pipeline runs.
     - Demo projects return seeded reproducible defects.
     """
-    # 1. Check user pipeline runs for real detected bugs
+    # 1. Check user pipeline runs for real detected bugs (or trigger if pending)
+    if project_id not in PROJECT_PIPELINE_RUNS:
+        proj = next((p for p in USER_PROJECTS if p["id"] == project_id), None)
+        if proj and proj.get("files") and proj.get("language") != "dataset":
+            try:
+                await run_autonomous_pipeline(
+                    project_id=project_id,
+                    project_name=proj["name"],
+                    files=proj["files"],
+                )
+            except (RuntimeError, ValueError, KeyError):
+                pass
+
     if project_id in PROJECT_PIPELINE_RUNS:
         run_data = PROJECT_PIPELINE_RUNS[project_id]
         detected_issues = run_data.get("issues", [])

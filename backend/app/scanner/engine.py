@@ -24,12 +24,23 @@ async def scan_project_files(files: list[dict[str, Any]]) -> dict[str, Any]:
         lang = (f.get("language") or "").lower()
         content = f.get("content") or ""
 
-        # Auto-detect language from extension if not explicitly set
-        if not lang or lang == "unknown":
-            if path.endswith((".py", ".pyw")):
+        # Auto-detect language from extension or content if not explicitly set
+        if not lang or lang in ("unknown", "text", "plaintext"):
+            lower_path = path.lower()
+            lower_content = content.lower()
+            if (
+                lower_path.endswith((".py", ".pyw"))
+                or "python" in lower_path
+                or any(kw in lower_content for kw in ("print(", "def ", "import ", "class ", "elif "))
+            ):
                 lang = "python"
-            elif path.endswith((".js", ".jsx", ".ts", ".tsx")):
+                f["language"] = "python"
+            elif (
+                lower_path.endswith((".js", ".jsx", ".ts", ".tsx"))
+                or any(kw in lower_content for kw in ("console.log", "function ", "const ", "let ", "require("))
+            ):
                 lang = "javascript"
+                f["language"] = "javascript"
 
         if not content or f.get("is_binary"):
             continue

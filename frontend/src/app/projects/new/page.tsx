@@ -80,7 +80,12 @@ function NewProjectForm() {
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
     const isZip = ext === "zip";
-    const detectedLang = isZip ? "archive" : (EXTENSION_MAP[ext] || "plaintext");
+    let detectedLang = isZip ? "archive" : (EXTENSION_MAP[ext] || "plaintext");
+    const lowerName = file.name.toLowerCase();
+    if (detectedLang === "plaintext") {
+      if (lowerName.includes("python") || lowerName.endsWith(".py")) detectedLang = "python";
+      else if (lowerName.includes("javascript") || lowerName.includes("node") || lowerName.endsWith(".js")) detectedLang = "javascript";
+    }
     setLanguage(detectedLang);
 
     if (!projectName) {
@@ -95,8 +100,16 @@ function NewProjectForm() {
 
     const reader = new FileReader();
     reader.onload = (e) => {
-      const content = e.target?.result as string;
-      setFileContent(content || "");
+      const content = (e.target?.result as string) || "";
+      setFileContent(content);
+      const lower = content.toLowerCase();
+      if (detectedLang === "plaintext") {
+        if (lower.includes("print(") || lower.includes("def ") || lower.includes("import ") || lower.includes("class ")) {
+          setLanguage("python");
+        } else if (lower.includes("console.log") || lower.includes("const ") || lower.includes("function ")) {
+          setLanguage("javascript");
+        }
+      }
     };
     reader.onerror = () => {
       setError("Failed to read file content. Please try another file.");
@@ -152,12 +165,37 @@ function NewProjectForm() {
         created = await uploadArchive(projectName, selectedFile);
       } else {
         const sourceType = activeTab === "paste" ? "paste" : activeTab === "dataset" ? "dataset" : "upload";
-        const filename = selectedFile?.name || (activeTab === "paste" ? `snippet.${language === "python" ? "py" : language === "javascript" ? "js" : "txt"}` : "data.csv");
+        let finalLang = language;
+        const lowerContent = fileContent.toLowerCase();
+        const lowerName = (selectedFile?.name || "").toLowerCase();
+        if (finalLang === "plaintext" || !finalLang || finalLang === "text") {
+          if (
+            lowerName.includes("python") ||
+            lowerName.endsWith(".py") ||
+            lowerContent.includes("print(") ||
+            lowerContent.includes("def ") ||
+            lowerContent.includes("import ") ||
+            lowerContent.includes("class ")
+          ) {
+            finalLang = "python";
+          } else if (
+            lowerName.includes("node") ||
+            lowerName.includes("javascript") ||
+            lowerName.endsWith(".js") ||
+            lowerContent.includes("console.log") ||
+            lowerContent.includes("const ") ||
+            lowerContent.includes("let ")
+          ) {
+            finalLang = "javascript";
+          }
+        }
+
+        const filename = selectedFile?.name || (activeTab === "paste" ? `snippet.${finalLang === "python" ? "py" : finalLang === "javascript" ? "js" : "txt"}` : "data.csv");
 
         created = await createProject({
           name: projectName,
           source_type: sourceType,
-          language,
+          language: finalLang,
           filename,
           content: fileContent,
           error_trace: errorTrace

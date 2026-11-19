@@ -316,6 +316,36 @@ def _generate_multi_candidates(
     return candidates
 
 
+def _fix_syntax_line(line: str) -> str:
+    """Repairs common syntax mistakes: unterminated quotes, unclosed parentheses, colons."""
+    res = line.rstrip()
+    if not res:
+        return line
+    double_quotes = res.count('"')
+    single_quotes = res.count("'")
+    if double_quotes % 2 != 0:
+        res += '"'
+    elif single_quotes % 2 != 0:
+        res += "'"
+    open_paren = res.count("(")
+    close_paren = res.count(")")
+    if open_paren > close_paren:
+        res += ")" * (open_paren - close_paren)
+    open_bracket = res.count("[")
+    close_bracket = res.count("]")
+    if open_bracket > close_bracket:
+        res += "]" * (open_bracket - close_bracket)
+    open_curly = res.count("{")
+    close_curly = res.count("}")
+    if open_curly > close_curly:
+        res += "}" * (open_curly - close_curly)
+    if res.startswith(("def ", "class ", "if ", "elif ", "for ", "while ")) and not res.endswith(":"):
+        res += ":"
+    if res.endswith("+ *"):
+        res = res[:-3] + "+"
+    return res
+
+
 def _synthesize_minimal_fix(code: str, issue: dict[str, Any], language: str) -> str:
     """Strategy 1: Smallest possible targeted patch."""
     rule_id = issue["rule_id"]
@@ -331,7 +361,12 @@ def _synthesize_minimal_fix(code: str, issue: dict[str, Any], language: str) -> 
             issue.get("snippet", ""), f"# Externalized: os.environ.get('{issue['rule_id']}')"
         )
     elif rule_id == "SYNTAX-ERR":
-        return code.replace("+ *", "+")
+        lines = code.splitlines()
+        target_idx = max(0, issue.get("line_number", 1) - 1)
+        if target_idx < len(lines):
+            lines[target_idx] = _fix_syntax_line(lines[target_idx])
+            return "\n".join(lines)
+        return _fix_syntax_line(code)
 
     # Generic: insert guard before problem line
     lines = code.splitlines()
@@ -372,6 +407,13 @@ def _synthesize_defensive_guard(code: str, issue: dict[str, Any], language: str)
             issue.get("snippet", ""),
             f"import os\n# DEFENSIVE: secret externalized\n{issue.get('snippet', '').split('=')[0].strip()} = os.environ.get('{issue['rule_id']}', '')",
         )
+    elif rule_id == "SYNTAX-ERR":
+        lines = code.splitlines()
+        target_idx = max(0, issue.get("line_number", 1) - 1)
+        if target_idx < len(lines):
+            lines[target_idx] = _fix_syntax_line(lines[target_idx])
+            return "# DEFENSIVE: syntax token terminated\n" + "\n".join(lines)
+        return "# DEFENSIVE: syntax token terminated\n" + _fix_syntax_line(code)
 
     # Generic defensive guard
     lines = code.splitlines()
@@ -410,6 +452,13 @@ def _synthesize_refactored_fix(code: str, issue: dict[str, Any], language: str) 
                 )
                 break
         return "\n".join(lines)
+    elif rule_id == "SYNTAX-ERR":
+        lines = code.splitlines()
+        target_idx = max(0, issue.get("line_number", 1) - 1)
+        if target_idx < len(lines):
+            lines[target_idx] = _fix_syntax_line(lines[target_idx])
+            return "# REFACTORED: safe syntax\n" + "\n".join(lines)
+        return "# REFACTORED: safe syntax\n" + _fix_syntax_line(code)
 
     # Generic refactored: wrap in try/except with logging
     lines = code.splitlines()
