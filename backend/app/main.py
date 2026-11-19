@@ -9,6 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes_bugs import router as bugs_router
+from app.api.routes_notifications import device_router as devices_router
+from app.api.routes_notifications import router as notifications_router
 from app.api.routes_patches import router as patches_router
 from app.api.routes_projects import router as projects_router
 from app.api.routes_settings import router as settings_router
@@ -45,6 +47,8 @@ app.include_router(projects_router, prefix="/api/v1")
 app.include_router(bugs_router, prefix="/api/v1")
 app.include_router(patches_router, prefix="/api/v1")
 app.include_router(settings_router, prefix="/api/v1")
+app.include_router(notifications_router, prefix="/api/v1")
+app.include_router(devices_router, prefix="/api/v1")
 
 
 @app.get("/health")
