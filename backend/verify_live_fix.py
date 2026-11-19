@@ -1,9 +1,8 @@
 import httpx
-import json
 
 base_url = "http://127.0.0.1:8000/api/v1"
 
-flawed_code = '''
+flawed_code = """
 import subprocess
 
 def compute_metrics(val, divisor):
@@ -14,7 +13,7 @@ def compute_metrics(val, divisor):
 def run_user_cmd(cmd):
     # Bug 2: Security injection
     subprocess.Popen(cmd, shell=True)
-'''
+"""
 
 print("===================================================================")
 print("             AutoPatch Live Flaw & Repair Verification             ")
@@ -48,18 +47,28 @@ print(f"-> Sandbox Runner: {res.get('runner_label', 'local')}")
 
 print("\n[Step 3] Detected Defects:")
 for idx, issue in enumerate(res.get("issues", []), start=1):
-    print(f"  {idx}. [{issue['rule_id']}] Line {issue['line_number']} (Severity: {issue['severity'].upper()}):")
+    print(
+        f"  {idx}. [{issue['rule_id']}] Line {issue['line_number']} (Severity: {issue['severity'].upper()}):"
+    )
     print(f"     Message: {issue['message']}")
     print(f"     Code Snippet: '{issue['snippet']}'")
 
 print("\n[Step 4] Synthesized Fixes & Dual Sandbox Verification:")
 for p in res.get("patches", []):
-    print(f"\n  * Patch ID: {p['id']} | Candidate #{p.get('candidate_number', 1)}: {p.get('strategy', 'Targeted Fix')}")
+    print(
+        f"\n  * Patch ID: {p['id']} | Candidate #{p.get('candidate_number', 1)}: {p.get('strategy', 'Targeted Fix')}"
+    )
     print(f"    - Target File: {p['file_path']}")
-    print(f"    - Verification Ladder: [{p['verification_level']}] | Confidence: {p['confidence_score']}%")
-    print(f"    - Dual Sandbox Proof: Pre-patch failed={not p['pre_patch_test_passed']} | Post-patch passed={p['post_patch_test_passed']}")
+    print(
+        f"    - Verification Ladder: [{p['verification_level']}] | Confidence: {p['confidence_score']}%"
+    )
+    print(
+        f"    - Dual Sandbox Proof: Pre-patch failed={not p['pre_patch_test_passed']} | Post-patch passed={p['post_patch_test_passed']}"
+    )
     critic = p.get("critic_verdict") or {}
-    print(f"    - Critic Score: {critic.get('composite_score', 0)}/100 | Recommendation: {critic.get('recommendation', 'needs_review').upper()}")
+    print(
+        f"    - Critic Score: {critic.get('composite_score', 0)}/100 | Recommendation: {critic.get('recommendation', 'needs_review').upper()}"
+    )
     blast = p.get("blast_radius") or {}
     print(f"    - Blast Radius: {blast.get('summary', 'Low risk')}")
     print("    - Unified Diff Applied to Fix Bug:")
