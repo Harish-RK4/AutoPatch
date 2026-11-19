@@ -13,7 +13,10 @@ export interface ProjectData {
   status: string;
   created_at: string;
   filename?: string;
-  files?: Array<{ file_path: string; content?: string; error_trace?: string }>;
+  files?: Array<{ file_path: string; content?: string; original_unpatched_content?: string; error_trace?: string }>;
+  patched_content?: string | null;
+  unified_diff?: string | null;
+  patches?: any[];
 }
 
 export async function fetchProjects(mode: "all" | "user" | "demo" = "all"): Promise<ProjectData[]> {
@@ -566,14 +569,67 @@ export async function executePipeline(projectId: string): Promise<any> {
   return await res.json();
 }
 
+export async function applyPatch(
+  projectId: string,
+  patchId?: string
+): Promise<{
+  status: string;
+  project_id: string;
+  patch_id?: string;
+  filename: string;
+  patched_content: string;
+  message: string;
+}> {
+  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/apply-patch`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ patch_id: patchId || null }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Failed to apply patch" }));
+    throw new Error(err.detail || "Failed to apply patch");
+  }
+  const result = await res.json();
+
+  // Also update in localStorage if present
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("autopatch_user_projects");
+      if (stored) {
+        const list = JSON.parse(stored);
+        const match = list.find((p: any) => p.id === projectId);
+        if (match && match.files && match.files.length > 0) {
+          match.files[0].original_unpatched_content = match.files[0].content;
+          match.files[0].content = result.patched_content;
+          match.status = "fixed";
+          localStorage.setItem("autopatch_user_projects", JSON.stringify(list));
+        }
+      }
+    } catch (e) {}
+  }
+
+  return result;
+}
+
 import { VerificationLevel } from "./tokens";
 
-export async function fetchAllPatches(): Promise<any[]> {
+export async function fetchAllPatches(bugId?: string): Promise<any[]> {
   try {
-    const res = await fetch(`${API_BASE}/api/v1/patches`, { cache: "no-store" });
+    const url = bugId
+      ? `${API_BASE}/api/v1/patches?bug_id=${encodeURIComponent(bugId)}`
+      : `${API_BASE}/api/v1/patches`;
+    const res = await fetch(url, { cache: "no-store" });
     if (res.ok) return await res.json();
   } catch (err) {}
   return [];
+}
+
+export async function fetchPatchDetail(patchId: string): Promise<any> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/patches/${patchId}`, { cache: "no-store" });
+    if (res.ok) return await res.json();
+  } catch (err) {}
+  return null;
 }
 
 export interface ColumnProfile {

@@ -11,6 +11,7 @@ from typing import Any
 
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.responses import PlainTextResponse, Response
+from pydantic import BaseModel
 
 from app.core.config import settings
 from app.dataset.engine import get_dataset_review, process_dataset_project
@@ -117,6 +118,9 @@ async def create_project(payload: ProjectCreate):
     USER_PROJECTS.insert(0, project_record)
 
     # Immediately execute autonomous pipeline on ingestion
+    patched_code = None
+    unified_diff = None
+    patches_list = []
     if files:
         is_ds = payload.source_type == "dataset" or project_record["language"] == "dataset"
         if not is_ds:
@@ -128,6 +132,10 @@ async def create_project(payload: ProjectCreate):
                 )
                 project_record["status"] = "verified" if res.get("patches_count", 0) > 0 else "clean"
                 project_record["last_pipeline_run"] = res
+                patches_list = res.get("patches", [])
+                if patches_list:
+                    patched_code = patches_list[0].get("patched_code")
+                    unified_diff = patches_list[0].get("unified_diff")
             except (RuntimeError, ValueError, KeyError):
                 pass
 
@@ -140,6 +148,9 @@ async def create_project(payload: ProjectCreate):
         created_at=project_record["created_at"],
         filename=project_record["filename"],
         files=project_record["files"],
+        patched_content=patched_code,
+        unified_diff=unified_diff,
+        patches=patches_list,
     )
 
 
@@ -149,6 +160,31 @@ async def get_project(project_id: str):
     # Check user projects first
     user_proj = next((p for p in USER_PROJECTS if p["id"] == project_id), None)
     if user_proj:
+        # Auto-trigger pipeline if not yet run
+        if project_id not in PROJECT_PIPELINE_RUNS and user_proj.get("files") and user_proj.get("language") != "dataset":
+            try:
+                res = await run_autonomous_pipeline(
+                    project_id=project_id,
+                    project_name=user_proj["name"],
+                    files=user_proj["files"],
+                )
+                user_proj["status"] = "verified" if res.get("patches_count", 0) > 0 else "clean"
+                user_proj["last_pipeline_run"] = res
+            except (RuntimeError, ValueError, KeyError):
+                pass
+
+        # Retrieve synthesized patch if available
+        patched_code = None
+        unified_diff = None
+        patches_list: list[dict[str, Any]] = []
+
+        if project_id in PROJECT_PIPELINE_RUNS:
+            run_data = PROJECT_PIPELINE_RUNS[project_id]
+            patches_list = run_data.get("patches", [])
+            if patches_list:
+                patched_code = patches_list[0].get("patched_code")
+                unified_diff = patches_list[0].get("unified_diff")
+
         return ProjectResponse(
             id=user_proj["id"],
             name=user_proj["name"],
@@ -158,14 +194,18 @@ async def get_project(project_id: str):
             created_at=user_proj["created_at"],
             filename=user_proj.get("filename"),
             files=user_proj.get("files", []),
+            patched_content=patched_code,
+            unified_diff=unified_diff,
+            patches=patches_list,
         )
 
     # Check demo projects
     if settings.DEMO_MODE:
-        from app.demo.seed_data import DEMO_PROJECTS
+        from app.demo.seed_data import DEMO_PATCHES, DEMO_PROJECTS
 
         proj = next((p for p in DEMO_PROJECTS if p["id"] == project_id), None)
         if proj:
+            demo_patch = DEMO_PATCHES[0] if DEMO_PATCHES else {}
             return ProjectResponse(
                 id=proj["id"],
                 name=proj["name"],
@@ -175,6 +215,9 @@ async def get_project(project_id: str):
                 created_at=proj["created_at"],
                 filename=proj.get("files", [{}])[0].get("file_path") if proj.get("files") else None,
                 files=proj.get("files", []),
+                patched_content=demo_patch.get("patched_code"),
+                unified_diff=demo_patch.get("diff"),
+                patches=DEMO_PATCHES,
             )
 
     raise HTTPException(status_code=404, detail="Project not found")
@@ -385,6 +428,81 @@ async def export_project_clean_dataset(project_id: str):
         media_type=media_type,
         headers={"Content-Disposition": f'attachment; filename="corrected_{review.filename}"'},
     )
+
+
+class ApplyPatchRequest(BaseModel):
+    patch_id: str | None = None
+
+
+@router.post("/{project_id}/apply-patch")
+async def apply_project_patch(project_id: str, payload: ApplyPatchRequest | None = None):
+    """
+    Applies the synthesized patch directly to the project's source files,
+    updating the active code to the proven/verified repair.
+    """
+    proj = next((p for p in USER_PROJECTS if p["id"] == project_id), None)
+    if not proj and settings.DEMO_MODE:
+        from app.demo.seed_data import DEMO_PROJECTS
+
+        proj = next((p for p in DEMO_PROJECTS if p["id"] == project_id), None)
+
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    files = proj.get("files", [])
+    if not files:
+        raise HTTPException(status_code=400, detail="Project has no files to patch")
+
+    target_patch = None
+    target_patch_id = payload.patch_id if payload else None
+
+    # Check active patches in pipeline run
+    if project_id in PROJECT_PIPELINE_RUNS:
+        run_data = PROJECT_PIPELINE_RUNS[project_id]
+        patches = run_data.get("patches", [])
+        if target_patch_id:
+            target_patch = next((p for p in patches if p.get("id") == target_patch_id), None)
+        if not target_patch and patches:
+            target_patch = patches[0]
+
+    # Fallback to demo patch if demo project
+    if not target_patch and settings.DEMO_MODE:
+        from app.demo.seed_data import DEMO_PATCHES
+
+        target_patch = DEMO_PATCHES[0]
+
+    if not target_patch:
+        raise HTTPException(status_code=404, detail="No synthesized patch available to apply")
+
+    patched_code = target_patch.get("patched_code") or ""
+    if not patched_code:
+        raise HTTPException(status_code=400, detail="Patch candidate contains empty code")
+
+    # Update file content in project
+    files[0]["original_unpatched_content"] = files[0].get("original_unpatched_content") or files[0].get("content")
+    files[0]["content"] = patched_code
+    proj["status"] = "fixed"
+
+    # Also record in repository memory
+    from app.memory.repo_memory import repo_memory
+
+    repo_memory.record_decision(
+        patch_id=target_patch.get("id", "patch-001"),
+        project_id=project_id,
+        bug_id=target_patch.get("bug_id", "bug-001"),
+        decision="accept",
+        strategy=target_patch.get("strategy", "minimal_diff"),
+        rationale="1-Click AutoPatch Applied to Workspace",
+    )
+
+    return {
+        "status": "applied",
+        "project_id": project_id,
+        "patch_id": target_patch.get("id"),
+        "filename": files[0].get("file_path", "source.code"),
+        "patched_content": patched_code,
+        "message": "Patch successfully applied to workspace. File updated with verified repair.",
+    }
 
 
 @router.post("/{project_id}/scan", response_model=ScanTriggerResponse)

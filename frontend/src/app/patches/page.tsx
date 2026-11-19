@@ -1,17 +1,19 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { GitPullRequest, ArrowRight, ShieldCheck, Gauge, Layers } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { fetchBugDetail, fetchAllPatches } from "@/lib/api";
 
-export default function PatchesListPage() {
+function PatchesListContent() {
   const [patches, setPatches] = useState<any[]>([]);
+  const searchParams = useSearchParams();
+  const bugId = searchParams.get("bug_id");
 
   useEffect(() => {
-    // Attempt to load from API, or fallback to bug patches
-    fetchAllPatches().then((apiPatches) => {
+    fetchAllPatches(bugId || undefined).then((apiPatches) => {
       if (apiPatches && apiPatches.length > 0) {
         setPatches(apiPatches);
       } else {
@@ -20,7 +22,7 @@ export default function PatchesListPage() {
         });
       }
     });
-  }, []);
+  }, [bugId]);
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
@@ -98,5 +100,13 @@ export default function PatchesListPage() {
         })}
       </div>
     </div>
+  );
+}
+
+export default function PatchesListPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[#57534E]">Loading patch candidates...</div>}>
+      <PatchesListContent />
+    </Suspense>
   );
 }
