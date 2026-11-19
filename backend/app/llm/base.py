@@ -28,6 +28,9 @@ class LLMResponse(BaseModel):
     raw_response: dict[str, Any] | None = None
     cached: bool = False
     tokens_used: int = 0
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
 
 
 class BaseLLMProvider(ABC):
