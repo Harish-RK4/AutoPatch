@@ -26,7 +26,7 @@ class AutoPatchVoiceSettings:
         self.twilio_webhook_base_url: str = (
             os.getenv("TWILIO_WEBHOOK_BASE_URL")
             or os.getenv("TWILIO_WEBHOOK_URL")
-            or "https://richards-correct-remark-tray.trycloudflare.com"
+            or "https://engaging-briefly-trans-study.trycloudflare.com"
         ).rstrip("/")
 
         # Groq LLM Intelligence
