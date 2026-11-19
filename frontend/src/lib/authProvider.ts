@@ -144,36 +144,44 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return { user: null, error: "Supabase credentials missing in .env (NEXT_PUBLIC_SUPABASE_URL)." };
     }
 
-    let { data, error } = await this.supabase.auth.signInWithPassword({
+    const { data, error } = await this.supabase.auth.signInWithPassword({
       email,
       password: pass,
     });
 
-    // If unconfirmed or rate limited, automatically confirm the user via Admin API
-    if (error && (error.message.toLowerCase().includes("not confirmed") || error.message.toLowerCase().includes("invalid login credentials"))) {
-      try {
-        const confirmRes = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password: pass }),
-        });
-        if (confirmRes.ok) {
-          const retry = await this.supabase.auth.signInWithPassword({
-            email,
-            password: pass,
-          });
-          if (retry.data?.user) {
-            data = retry.data;
-            error = null;
-          }
-        }
-      } catch (e) {
-        // Fallback to error return
-      }
-    }
-
     if (error || !data.user) {
-      return { user: null, error: error?.message || "Authentication failed. Please verify your email and password." };
+      const msg = error?.message || "";
+      // If user exists but email not confirmed, auto-confirm via server route and retry
+      if (msg.includes("Email not confirmed") || msg.includes("Invalid login credentials")) {
+        try {
+          const confirmRes = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password: pass, full_name: email.split("@")[0] }),
+          });
+          if (confirmRes.ok) {
+            // Retry sign-in after auto-confirm
+            const retry = await this.supabase.auth.signInWithPassword({ email, password: pass });
+            if (retry.data?.user) {
+              const retryUser: AuthUser = {
+                id: retry.data.user.id,
+                email: retry.data.user.email || email,
+                fullName: retry.data.user.user_metadata?.full_name || email.split("@")[0],
+                role: (retry.data.user.user_metadata?.role as any) || "developer",
+                isDemo: false,
+              };
+              if (typeof window !== "undefined") {
+                localStorage.setItem("autopatch_session", JSON.stringify(retryUser));
+                document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+              }
+              return { user: retryUser, error: null };
+            }
+          }
+        } catch (_) {
+          // Fall through to original error
+        }
+      }
+      return { user: null, error: error?.message || "Authentication failed." };
     }
 
     const user: AuthUser = {
@@ -242,7 +250,12 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return { user: null, error: "Supabase credentials missing in .env." };
     }
 
-    // 1. Primary path: Local Next.js API route using Admin API (auto-confirms, zero SMTP email rate limits)
+    // Strategy: Use server-side Admin API routes ONLY (never supabase.auth.signUp which triggers emails)
+    // Priority 1: Next.js server-side API route (uses SUPABASE_SERVICE_ROLE_KEY)
+    // Priority 2: FastAPI backend route
+    // NEVER fall back to supabase.auth.signUp() — it triggers SMTP and hits rate limits
+
+    // Try Next.js server-side route first (keeps service role key on server)
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -250,52 +263,45 @@ export class SupabaseAuthProvider implements IAuthProvider {
         body: JSON.stringify({ email, password: pass, full_name: fullName }),
       });
       if (res.ok) {
+        const data = await res.json();
+        if (data.status === "exists") {
+          // User already exists — try signing in directly
+          return await this.signIn(email, pass);
+        }
+        // Successfully created/confirmed — sign in
         return await this.signIn(email, pass);
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        if (errJson.detail?.toLowerCase().includes("already registered") || errJson.detail?.toLowerCase().includes("already exists")) {
-          return await this.signIn(email, pass);
-        }
       }
-    } catch (e) {
-      // 2. Secondary path: FastAPI backend endpoint
-      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      try {
-        const bRes = await fetch(`${apiBase}/api/v1/auth/register`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password: pass, full_name: fullName }),
-        });
-        if (bRes.ok) {
-          return await this.signIn(email, pass);
-        }
-      } catch (be) {}
+      const errJson = await res.json().catch(() => ({}));
+      if (errJson.error && !errJson.error.includes("not configured")) {
+        return { user: null, error: errJson.error };
+      }
+    } catch (_) {
+      // Next.js route unreachable, try FastAPI backend
     }
 
-    // 3. Fallback to Supabase client SDK with rate limit protection
-    const { data, error } = await this.supabase.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        data: { full_name: fullName, role: "developer" },
-      },
-    });
-
-    if (error) {
-      if (error.message.toLowerCase().includes("rate limit") || error.message.toLowerCase().includes("over_email_send")) {
-        const loginAttempt = await this.signIn(email, pass);
-        if (loginAttempt.user) {
-          return loginAttempt;
-        }
-        return {
-          user: null,
-          error: "Supabase free email rate limit exceeded. Your account has been registered in Supabase. Please click 'Sign In' or use the 1-Click Sign In button.",
-        };
+    // Fallback: Try FastAPI backend route
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    try {
+      const res = await fetch(`${apiBase}/api/v1/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pass, full_name: fullName }),
+      });
+      if (res.ok) {
+        return await this.signIn(email, pass);
       }
-      return { user: null, error: error.message };
+      const errJson = await res.json().catch(() => ({}));
+      if (errJson.detail) {
+        return { user: null, error: errJson.detail };
+      }
+    } catch (_) {
+      // FastAPI backend also unreachable
     }
 
-    return await this.signIn(email, pass);
+    return {
+      user: null,
+      error: "Registration service unavailable. Please use 'Sign In' if you already have an account, or try again shortly.",
+    };
   }
 
   async signOut(): Promise<void> {

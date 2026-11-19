@@ -55,25 +55,44 @@ async def register_user(payload: RegisterRequest):
                         "message": "User registered and auto-confirmed in Supabase.",
                     }
                 elif resp.status_code == 422:
-                    # User already exists in Supabase: find and auto-confirm/update password
-                    list_resp = await client.get(f"{url}/auth/v1/admin/users?per_page=100", headers=headers)
+                    # User may already exist — find and auto-confirm
+                    list_resp = await client.get(
+                        f"{url}/auth/v1/admin/users?page=1&per_page=50",
+                        headers=headers,
+                    )
                     if list_resp.status_code == 200:
-                        users = list_resp.json().get("users", [])
-                        existing = next((u for u in users if u.get("email", "").lower() == payload.email.lower()), None)
+                        list_data = list_resp.json()
+                        users = list_data.get("users", list_data) if isinstance(list_data, dict) else list_data
+                        existing = next(
+                            (u for u in users if u.get("email", "").lower() == payload.email.lower()),
+                            None,
+                        )
                         if existing:
+                            # Update password and confirm email
+                            update_body = {
+                                "password": payload.password,
+                                "email_confirm": True,
+                                "user_metadata": {
+                                    **existing.get("user_metadata", {}),
+                                    "full_name": payload.full_name or existing.get("user_metadata", {}).get("full_name", ""),
+                                },
+                            }
                             update_resp = await client.put(
                                 f"{url}/auth/v1/admin/users/{existing['id']}",
                                 headers=headers,
-                                json={"password": payload.password, "email_confirm": True},
+                                json=update_body,
                             )
-                            if update_resp.status_code in (200, 201):
+                            if update_resp.status_code == 200:
                                 return {
-                                    "status": "updated",
+                                    "status": "confirmed",
                                     "user_id": existing["id"],
-                                    "email": existing.get("email"),
-                                    "message": "Account auto-confirmed and password updated.",
+                                    "email": existing["email"],
+                                    "message": "Existing user confirmed and password updated.",
                                 }
-                    raise HTTPException(status_code=400, detail="Account already exists. Please sign in with your password.")
+                    raise HTTPException(
+                        status_code=400,
+                        detail="A user with this email already exists. Please sign in instead.",
+                    )
                 else:
                     err_json = resp.json() if resp.text else {}
                     err_msg = err_json.get("msg") or f"Supabase admin creation failed ({resp.status_code})"

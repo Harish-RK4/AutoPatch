@@ -1,33 +1,44 @@
-import { NextResponse } from "next/server";
+/**
+ * Next.js Server-Side Registration API Route
+ * Uses SUPABASE_SERVICE_ROLE_KEY (server-only env var) to register users
+ * via the Supabase Admin API with auto-confirmed email.
+ * This completely bypasses the free-tier SMTP email rate limit.
+ */
 
-export async function POST(req: Request) {
+import { NextRequest, NextResponse } from "next/server";
+
+const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+function adminHeaders() {
+  const key = SERVICE_KEY || ANON_KEY;
+  return {
+    apikey: key,
+    Authorization: `Bearer ${key}`,
+    "Content-Type": "application/json",
+  };
+}
+
+export async function POST(req: NextRequest) {
   try {
     const { email, password, full_name } = await req.json();
 
     if (!email || !password) {
-      return NextResponse.json({ detail: "Email and password are required." }, { status: 400 });
+      return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "");
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!supabaseUrl || !serviceRoleKey) {
+    if (!SUPABASE_URL || !SERVICE_KEY) {
       return NextResponse.json(
-        { detail: "Supabase configuration missing on server." },
+        { error: "Supabase service role key not configured on server." },
         { status: 500 }
       );
     }
 
-    const headers = {
-      apikey: serviceRoleKey,
-      Authorization: `Bearer ${serviceRoleKey}`,
-      "Content-Type": "application/json",
-    };
-
-    // 1. Attempt to create the user directly with email_confirm = true
-    const createRes = await fetch(`${supabaseUrl}/auth/v1/admin/users`, {
+    // Step 1: Try to create the user via Admin API with auto-confirm
+    const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",
-      headers,
+      headers: adminHeaders(),
       body: JSON.stringify({
         email,
         password,
@@ -37,69 +48,74 @@ export async function POST(req: Request) {
     });
 
     if (createRes.ok) {
-      const data = await createRes.json();
+      const user = await createRes.json();
       return NextResponse.json({
         status: "created",
-        user_id: data.id,
-        email: data.email,
-        message: "User successfully registered and auto-confirmed.",
+        user_id: user.id,
+        email: user.email,
       });
     }
 
-    // 2. If user already exists (HTTP 422), update password and auto-confirm email
+    // Step 2: If user already exists (422), find and update them
     if (createRes.status === 422) {
-      // Find the existing user by email
-      const listRes = await fetch(`${supabaseUrl}/auth/v1/admin/users?per_page=100`, {
-        method: "GET",
-        headers,
-      });
+      // List users to find existing one
+      const listRes = await fetch(
+        `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`,
+        { method: "GET", headers: adminHeaders() }
+      );
 
       if (listRes.ok) {
         const listData = await listRes.json();
-        const existing = (listData.users || []).find(
+        const users = listData.users || listData || [];
+        const existing = users.find(
           (u: any) => u.email?.toLowerCase() === email.toLowerCase()
         );
 
         if (existing) {
-          const updateRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${existing.id}`, {
-            method: "PUT",
-            headers,
-            body: JSON.stringify({
-              password,
-              email_confirm: true,
-              user_metadata: {
-                ...existing.user_metadata,
-                full_name: full_name || existing.user_metadata?.full_name || email.split("@")[0],
-                role: "developer",
-              },
-            }),
-          });
+          // Update password and auto-confirm
+          const updateRes = await fetch(
+            `${SUPABASE_URL}/auth/v1/admin/users/${existing.id}`,
+            {
+              method: "PUT",
+              headers: adminHeaders(),
+              body: JSON.stringify({
+                password,
+                email_confirm: true,
+                user_metadata: {
+                  ...existing.user_metadata,
+                  full_name: full_name || existing.user_metadata?.full_name || email.split("@")[0],
+                },
+              }),
+            }
+          );
 
           if (updateRes.ok) {
             return NextResponse.json({
-              status: "updated",
+              status: "confirmed",
               user_id: existing.id,
               email: existing.email,
-              message: "Account updated and auto-confirmed. Proceeding to sign in.",
             });
           }
         }
       }
 
-      return NextResponse.json(
-        { detail: "This email is already registered. Please sign in with your password." },
-        { status: 400 }
-      );
+      // Even if we can't find/update, tell the user the account exists
+      return NextResponse.json({
+        status: "exists",
+        email,
+        message: "Account already exists. Please sign in.",
+      });
     }
 
+    // Other errors
     const errData = await createRes.json().catch(() => ({}));
     return NextResponse.json(
-      { detail: errData.msg || errData.message || "Registration failed." },
+      { error: errData.msg || `Registration failed (${createRes.status})` },
       { status: createRes.status }
     );
-  } catch (error: any) {
+  } catch (err: any) {
     return NextResponse.json(
-      { detail: error?.message || "Internal server error during registration." },
+      { error: err?.message || "Internal server error during registration." },
       { status: 500 }
     );
   }
