@@ -245,6 +245,56 @@ Full detailed metrics are recorded in [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md)
 
 ---
 
+## Cloud Production Deployment (Vercel & Render)
+
+AutoPatch is fully configured for automated cloud deployment with zero localhost dependency.
+
+### Architecture Overview
+- **Frontend**: Next.js 16 deployed on **Vercel** with edge routing, automatic SSL, and global CDN.
+- **Backend**: FastAPI web service deployed on **Render** with automatic health check polling (`/health`) and CI/CD blueprints (`render.yaml`).
+- **Database & Auth**: **Supabase** PostgreSQL with Row Level Security (RLS), real-time WebSockets, and OAuth authentication.
+- **AI Engine**: **Google Gemini 3.5 Flash** and **Groq Qwen 2.5/3.8** for sub-millisecond AST bug repair and patch synthesis.
+
+### 1. Backend Deployment on Render
+1. Connect your GitHub repository (`Harish-RK4/AutoPatch`) in [Render Dashboard](https://dashboard.render.com).
+2. Choose **Blueprint** and select `render.yaml` (or create a new **Web Service** with `rootDir: backend`).
+3. Set the following environment variables:
+   - `APP_ENV`: `production`
+   - `DEMO_MODE`: `false`
+   - `NEXT_PUBLIC_AUTH_MODE`: `supabase`
+   - `SANDBOX_MODE`: `docker`
+   - `LLM_MODE`: `free`
+   - `GEMINI_API_KEY`: `<your-gemini-api-key>`
+   - `GROQ_API_KEY`: `<your-groq-api-key>`
+   - `NEXT_PUBLIC_SUPABASE_URL`: `https://qqgwmkqfdoayiblculhf.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: `sb_publishable_GhU7u75Vua_I4FyE8DuW3Q_tkjuVm01`
+   - `SUPABASE_SERVICE_ROLE_KEY`: `<your-supabase-service-role-key>`
+   - `DATABASE_URL`: `postgresql://postgres.qqgwmkqfdoayiblculhf:[PASSWORD]@aws-1-ap-northeast-1.pooler.supabase.com:5432/postgres`
+   - `ALLOWED_ORIGINS`: `https://autopatch.vercel.app,https://<your-vercel-domain>.vercel.app`
+4. Deploy the service. The live backend URL will be provided by Render (e.g., `https://autopatch-backend.onrender.com`).
+
+### 2. Frontend Deployment on Vercel
+1. Import repository `Harish-RK4/AutoPatch` in [Vercel Dashboard](https://vercel.com/new).
+2. Set **Root Directory** to `frontend`.
+3. Configure Environment Variables:
+   - `NEXT_PUBLIC_API_URL`: Your Render backend live URL (e.g., `https://autopatch-backend.onrender.com`)
+   - `NEXT_PUBLIC_AUTH_MODE`: `supabase`
+   - `APP_ENV`: `production`
+   - `NEXT_PUBLIC_SUPABASE_URL`: `https://qqgwmkqfdoayiblculhf.supabase.co`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: `sb_publishable_GhU7u75Vua_I4FyE8DuW3Q_tkjuVm01`
+   - `SUPABASE_SERVICE_ROLE_KEY`: `<your-supabase-service-role-key>`
+   - `GOOGLE_CLIENT_ID`: `9251047750-mktoc44alquphuugsj5u11aklgkaahql.apps.googleusercontent.com`
+   - `GOOGLE_CLIENT_SECRET`: `<your-google-client-secret>`
+   - `NEXT_PUBLIC_GOOGLE_CLIENT_ID`: `9251047750-mktoc44alquphuugsj5u11aklgkaahql.apps.googleusercontent.com`
+4. Click **Deploy**. Vercel will build the optimized production bundle and issue a live public URL.
+
+### 3. Supabase Auth Redirect Configuration
+Add your production Vercel URL to the Supabase Dashboard -> Authentication -> URL Configuration -> Redirect URLs:
+- `https://<your-vercel-app>.vercel.app/auth/callback`
+- `https://<your-vercel-app>.vercel.app`
+
+---
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

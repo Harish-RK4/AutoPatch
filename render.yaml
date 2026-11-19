@@ -1,0 +1,37 @@
+services:
+  - type: web
+    name: autopatch-backend
+    env: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_AUTH_MODE
+        value: supabase
+      - key: DEMO_MODE
+        value: "false"
+      - key: LLM_MODE
+        value: free
+      - key: SANDBOX_MODE
+        value: docker
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://qqgwmkqfdoayiblculhf.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        value: sb_publishable_GhU7u75Vua_I4FyE8DuW3Q_tkjuVm01
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false

@@ -76,5 +76,6 @@ Thumbs.db
 temp/
 sandbox_work/
 uploads/
+.vercel/
 
 cloudflared.exe
