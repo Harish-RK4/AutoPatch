@@ -935,3 +935,48 @@ export async function triggerVoiceCall(
   }
   return await res.json();
 }
+
+export interface QuickRepairResult {
+  success: boolean;
+  flaw_detected: boolean;
+  rule_id: string;
+  severity: string;
+  line_number: number;
+  error_message: string;
+  why_error_occurred: string;
+  original_code: string;
+  patched_code: string;
+  unified_diff: string;
+  pre_patch_execution: {
+    exit_code: number;
+    stdout: string;
+    stderr: string;
+    passed: boolean;
+  };
+  post_patch_execution: {
+    exit_code: number;
+    stdout: string;
+    stderr: string;
+    passed: boolean;
+  };
+  verification_level: string;
+  confidence_score: number;
+  sandbox_duration_ms: number;
+}
+
+export async function quickRepairCode(
+  code: string,
+  language: string = "python",
+  filename: string = "snippet.py"
+): Promise<QuickRepairResult> {
+  const res = await fetch(`${API_BASE}/api/v1/projects/quick-repair`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, language, filename }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || "Quick repair analysis failed.");
+  }
+  return await res.json();
+}
