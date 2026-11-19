@@ -4,6 +4,37 @@ All notable changes to AutoPatch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Phase P2 - Universal Layer & Trust Engine] - 2026-11-19
+
+### Added
+- **Blast Radius Analysis Engine (`app.indexing.blast_radius`)**:
+  - Traverses AST symbol tables, file indices, and directed call graphs to calculate affected symbols, direct callers, transitive callers, and impacted files.
+  - Measures pre-patch vs. post-patch cyclomatic complexity delta.
+  - Generates quantitative blast score (0-100) and qualitative risk level (`Low`, `Medium`, `High`, `Critical`).
+- **Multi-Candidate Patch Generation (3 Distinct Strategies)**:
+  - Generates 3 ranked candidate patches per detected defect:
+    1. *Candidate 1 (Rank 1 - Minimal Targeted Fix)*: Surgical defensive guard with lowest blast radius.
+    2. *Candidate 2 (Rank 2 - Defensive Guard Insertion)*: Comprehensive input bounds validation and normalization.
+    3. *Candidate 3 (Rank 3 - Refactored Safe Alternative)*: Restructured approach using safe parsing or wrapped error handling.
+- **Critic Agent (`app.patcher.critic`)**:
+  - Multi-axis evaluation scoring candidate patches on Correctness (40%), Safety (25%), Minimality (20%), and Side-effects/Blast Radius (15%).
+  - Automatically flags syntax errors, dangerous introduced patterns (`eval`, `exec`, `shell=True`), and assigns recommendation (`accept`, `reject`, `needs_review`).
+- **Verification Ladder & Composite Confidence Scoring (`app.patcher.confidence`)**:
+  - Strictly caps confidence scores by verification tier: `V4 (Proven)` max 100, `V3 (Verified)` max 85, `V2 (Executed)` max 65, `V1 (Static)` max 45, `V0 (Unverified)` max 30.
+  - Computes composite priority scores combining capped confidence with vulnerability severity.
+- **Reproducer Agent (`app.patcher.reproducer`)**:
+  - Synthesizes minimal trigger inputs to confirm defect reproduction in the sandbox before patch evaluation.
+- **Automated Test Generator (`app.patcher.test_generator`)**:
+  - Generates language-specific targeted unit test harnesses (Python `unittest` / JS assertions) asserting defect remediation.
+- **Patch Review Screen Redesign (`/patches/[id]`)**:
+  - Dynamic Candidate Switcher: Tabbed selector switching between Candidate 1 (Minimal Diff), Candidate 2 (Defensive Guard), and Candidate 3 (Comprehensive).
+  - Left: Interactive Diff Viewer with Origin (Amber), Crash (Red), and Patch (Emerald) line highlights.
+  - Right: Proof-Carrying Bundle, Per-Hunk "Why" Card, Critic Evaluation metrics (Correctness, Safety, Minimality, Side-Effects), and Blast Radius Impact card.
+  - Sticky Action Bar: Reviewer rationale note input with `Needs Review`, `Reject Patch`, and `Accept & Branch` actions.
+- **Expanded Verification Suites**:
+  - 69 pytest tests passing with 83% coverage and 100% clean Ruff linting.
+  - 18 Playwright and Axe accessibility audits passing with 0 critical/serious violations.
+
 ## [Phase P1 - Core Loop & Ingestion Engine] - 2026-11-19
 
 ### Added
