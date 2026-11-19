@@ -86,14 +86,17 @@ export default function ProjectDetailsPage() {
 
   // Quick Interactive Repair State
   const [quickCode, setQuickCode] = useState("");
+  const [selectedLang, setSelectedLang] = useState("python");
+  const [selectedModel, setSelectedModel] = useState("auto");
   const [isQuickFixing, setIsQuickFixing] = useState(false);
   const [quickResult, setQuickResult] = useState<QuickRepairResult | null>(null);
   const [quickError, setQuickError] = useState<string | null>(null);
   const [quickViewTab, setQuickViewTab] = useState<"repaired" | "diff">("repaired");
   const [quickCopied, setQuickCopied] = useState(false);
 
-  const handleRunQuickRepair = async (codeToRun?: string) => {
+  const handleRunQuickRepair = async (codeToRun?: string, langOverride?: string) => {
     const target = typeof codeToRun === "string" ? codeToRun : quickCode;
+    const lang = langOverride || selectedLang;
     if (!target.trim()) {
       setQuickError("Please enter or paste code to analyze.");
       return;
@@ -101,10 +104,12 @@ export default function ProjectDetailsPage() {
     setIsQuickFixing(true);
     setQuickError(null);
     try {
+      const ext = lang === "javascript" ? "js" : lang === "typescript" ? "ts" : lang === "c" ? "c" : lang === "java" ? "java" : "py";
       const res = await quickRepairCode(
         target,
-        project?.language?.toLowerCase() || "python",
-        project?.filename || "snippet.py"
+        lang,
+        `snippet.${ext}`,
+        selectedModel
       );
       setQuickResult(res);
       setQuickViewTab("repaired");
@@ -368,52 +373,108 @@ export default function ProjectDetailsPage() {
 
           {/* Quick Presets */}
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="text-[11px] font-mono text-[#78716C] mr-1">Quick Presets:</span>
+            <span className="text-[11px] font-mono text-[#78716C] mr-1">Presets:</span>
             <button
               onClick={() => {
+                setSelectedLang("python");
                 setQuickCode('print("Hello');
-                handleRunQuickRepair('print("Hello');
+                handleRunQuickRepair('print("Hello', "python");
               }}
               className="px-2 py-1 rounded text-[11px] font-mono bg-[#FAF9F6] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] text-[#1C1917] dark:text-[#F5F5F4] hover:border-[#0F766E] transition-colors"
             >
-              Syntax Error [print(&quot;Hello]
+              🐍 Py Syntax
             </button>
             <button
               onClick={() => {
+                setSelectedLang("python");
                 const sampleStudent = `students = []\n\ndef add_student(name, age, marks):\n    student = {\n        "name": name,\n        "age": age,\n        "marks": marks\n    }\n    students.append(student)\n    print("Student added successfully")\n\n\ndef calculate_average():\n    total = 0\n    for student in students:\n        total += student["marks"]\n    average = total / len(students)\n    return average\n\n\ndef find_student(name):\n    for student in students:\n        if student["name"] == name:\n            return student\n        else:\n            return None\n\n\ndef update_marks(name, new_marks):\n    student = find_student(name)\n    if student:\n        student["marks"] = new_marks\n        print("Marks updated")\n    else:\n        print("Student not found")\n\n# Main program\nadd_student("Aliya", 20, 85)\nadd_student("Rahul", -5, 90)\nadd_student("John", 21, 75)\n\nprint("Average:", calculate_average())\nprint("Search result:", find_student("John"))\nupdate_marks("Rahul", 95)`;
                 setQuickCode(sampleStudent);
-                handleRunQuickRepair(sampleStudent);
+                handleRunQuickRepair(sampleStudent, "python");
               }}
               className="px-2 py-1 rounded text-[11px] font-mono bg-[#FAF9F6] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] text-[#0F766E] dark:text-[#14B8A6] hover:border-[#0F766E] font-semibold transition-colors"
             >
-              Students App (Loop Defect)
+              🐍 Students Loop Defect
             </button>
             <button
               onClick={() => {
-                const zeroDiv = `def compute_ratio(score, total):\n    return (score / total) * 100.0\n\nprint(compute_ratio(85, 0))`;
-                setQuickCode(zeroDiv);
-                handleRunQuickRepair(zeroDiv);
+                setSelectedLang("javascript");
+                const jsBug = `function getUserInitials(user) {\n    return user.name.split(' ')[0][0] + user.name.split(' ')[1][0];\n}\nconsole.log(getUserInitials({}));`;
+                setQuickCode(jsBug);
+                handleRunQuickRepair(jsBug, "javascript");
+              }}
+              className="px-2 py-1 rounded text-[11px] font-mono bg-[#FAF9F6] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] text-[#D97706] dark:text-[#F59E0B] hover:border-[#D97706] font-semibold transition-colors"
+            >
+              🟨 JS TypeError (Undefined)
+            </button>
+            <button
+              onClick={() => {
+                setSelectedLang("javascript");
+                const evalBug = `function calculateTotal(expression) {\n    return eval(expression);\n}\nconsole.log(calculateTotal("20 + 30"));`;
+                setQuickCode(evalBug);
+                handleRunQuickRepair(evalBug, "javascript");
               }}
               className="px-2 py-1 rounded text-[11px] font-mono bg-[#FAF9F6] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] text-[#1C1917] dark:text-[#F5F5F4] hover:border-[#0F766E] transition-colors"
             >
-              Zero Division
+              🟨 JS Insecure eval()
+            </button>
+            <button
+              onClick={() => {
+                setSelectedLang("c");
+                const cBug = `#include <stdio.h>\n#include <string.h>\n\nvoid copy_buffer(char *dst, const char *src, int max_len) {\n    for (int i = 0; i <= max_len; i++) {\n        dst[i] = src[i];\n    }\n}\n\nint main() {\n    char buf[16];\n    copy_buffer(buf, "Hello, World!", 16);\n    printf("%s\\n", buf);\n    return 0;\n}`;
+                setQuickCode(cBug);
+                handleRunQuickRepair(cBug, "c");
+              }}
+              className="px-2 py-1 rounded text-[11px] font-mono bg-[#FAF9F6] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] text-[#1C1917] dark:text-[#F5F5F4] hover:border-[#0F766E] transition-colors"
+            >
+              ⚙️ C Buffer Overflow
             </button>
           </div>
         </div>
 
-        {/* Code Input Box */}
+        {/* Code Input Box with Language & Model Selectors */}
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-xs font-mono text-[#57534E] dark:text-[#D6D3D1]">
-            <span className="flex items-center gap-1">
-              <Terminal className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
-              Input Source Code ({project?.language || "Python"}):
-            </span>
+          <div className="flex items-center justify-between text-xs font-mono text-[#57534E] dark:text-[#D6D3D1] flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <span className="flex items-center gap-1">
+                <Terminal className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
+                Language:
+              </span>
+              <select
+                value={selectedLang}
+                onChange={(e) => setSelectedLang(e.target.value)}
+                className="bg-[#FAF9F6] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] rounded px-2 py-0.5 text-xs font-mono font-medium text-[#1C1917] dark:text-[#F5F5F4] focus:outline-none focus:border-[#0F766E]"
+              >
+                <option value="python">Python (.py)</option>
+                <option value="javascript">JavaScript (Node.js)</option>
+                <option value="typescript">TypeScript (.ts)</option>
+                <option value="c">C / C++ (.c)</option>
+                <option value="java">Java (.java)</option>
+              </select>
+
+              <span className="text-[#A8A29E]">|</span>
+
+              <span className="flex items-center gap-1">
+                <Cpu className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
+                AI Model:
+              </span>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                className="bg-[#FAF9F6] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] rounded px-2 py-0.5 text-xs font-mono font-medium text-[#1C1917] dark:text-[#F5F5F4] focus:outline-none focus:border-[#0F766E]"
+              >
+                <option value="auto">Auto-Router (Gemini Flash + Groq)</option>
+                <option value="groq">Groq Inference (Qwen 3.8 27B / Llama 3.3)</option>
+                <option value="gemini">Google Gemini (3.5 Flash Lite)</option>
+                <option value="ollama">Local Ollama (Private Offline)</option>
+              </select>
+            </div>
+
             <span>{quickCode ? quickCode.split("\n").length : 0} lines</span>
           </div>
           <textarea
             value={quickCode}
             onChange={(e) => setQuickCode(e.target.value)}
-            placeholder="Paste any broken Python code here (e.g. print(&quot;Hello or student lookup logic)..."
+            placeholder={`Paste any broken ${selectedLang.toUpperCase()} code here (syntax errors, loop defects, unhandled crashes)...`}
             rows={5}
             className="w-full p-3 font-mono text-xs rounded-xl border border-[#E7E5E4] dark:border-[#292524] bg-[#FAF9F6] dark:bg-[#0C0A09] text-[#1C1917] dark:text-[#F5F5F4] focus:outline-none focus:border-[#0F766E] transition-all"
           />

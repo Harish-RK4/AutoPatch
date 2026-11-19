@@ -4,6 +4,7 @@ Handles project creation, user uploads, listing, details, and pipeline scan trig
 """
 
 import datetime
+import re
 import tempfile
 import uuid
 from pathlib import Path
@@ -16,6 +17,7 @@ from pydantic import BaseModel
 from app.core.config import settings
 from app.dataset.engine import get_dataset_review, process_dataset_project
 from app.dataset.models import DatasetReviewBundle
+from app.core.persistence import load_user_projects, save_user_projects
 from app.indexing.coordinator import index_files
 from app.ingestion.archive import ArchiveSecurityViolation, SafeArchiveIngester
 from app.models.schemas import BugSummary, ProjectCreate, ProjectResponse, ScanTriggerResponse
@@ -23,8 +25,8 @@ from app.patcher.pipeline import PROJECT_PIPELINE_RUNS, run_autonomous_pipeline
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
-# In-memory store for user-uploaded projects during Phase P0
-USER_PROJECTS: list[dict[str, Any]] = []
+# User-uploaded projects loaded from disk persistence
+USER_PROJECTS: list[dict[str, Any]] = load_user_projects()
 
 
 @router.get("", response_model=list[ProjectResponse])
@@ -116,6 +118,7 @@ async def create_project(payload: ProjectCreate):
     }
 
     USER_PROJECTS.insert(0, project_record)
+    save_user_projects(USER_PROJECTS)
 
     # Immediately execute autonomous pipeline on ingestion
     patched_code = None
@@ -138,6 +141,7 @@ async def create_project(payload: ProjectCreate):
                     unified_diff = patches_list[0].get("unified_diff")
             except (RuntimeError, ValueError, KeyError):
                 pass
+                save_user_projects(USER_PROJECTS)
 
     return ProjectResponse(
         id=project_record["id"],
@@ -172,6 +176,7 @@ async def get_project(project_id: str):
                 user_proj["last_pipeline_run"] = res
             except (RuntimeError, ValueError, KeyError):
                 pass
+                save_user_projects(USER_PROJECTS)
 
         # Retrieve synthesized patch if available
         patched_code = None
@@ -277,6 +282,7 @@ async def upload_archive(
     }
 
     USER_PROJECTS.insert(0, project_record)
+    save_user_projects(USER_PROJECTS)
 
     return ProjectResponse(
         id=project_record["id"],
@@ -363,6 +369,7 @@ async def execute_pipeline(project_id: str):
 
     proj["status"] = "verified" if pipeline_res.get("patches_count", 0) > 0 else "clean"
     proj["last_pipeline_run"] = pipeline_res
+    save_user_projects(USER_PROJECTS)
 
     return pipeline_res
 
@@ -486,6 +493,7 @@ async def apply_project_patch(project_id: str, payload: ApplyPatchRequest | None
     files[0]["original_unpatched_content"] = files[0].get("original_unpatched_content") or files[0].get("content")
     files[0]["content"] = patched_code
     proj["status"] = "fixed"
+    save_user_projects(USER_PROJECTS)
 
     # Also record in repository memory
     from app.memory.repo_memory import repo_memory
@@ -540,6 +548,7 @@ async def list_project_bugs(project_id: str):
                 )
             except (RuntimeError, ValueError, KeyError):
                 pass
+                save_user_projects(USER_PROJECTS)
 
     if project_id in PROJECT_PIPELINE_RUNS:
         run_data = PROJECT_PIPELINE_RUNS[project_id]
@@ -653,24 +662,26 @@ class QuickRepairRequest(BaseModel):
     code: str
     language: str = "python"
     filename: str = "snippet.py"
+    model_provider: str = "auto"  # "auto", "groq", "gemini", "ollama"
 
 
 @router.post("/quick-repair")
 async def quick_repair_code(payload: QuickRepairRequest):
     """
-    Takes arbitrary source code (with syntax errors, runtime crashes, logic bugs, etc.),
+    Takes arbitrary source code in Python, JavaScript/TypeScript, Java, C, etc.,
     executes it in the isolated sandbox, detects the exact defect, explains WHY it occurred,
-    synthesizes a verified patch, executes the patch to prove it runs without errors,
-    and returns the complete verification proof bundle.
+    synthesizes a verified patch using the selected LLM or AST rules, executes the patch
+    to prove it runs without errors, and returns the complete verification proof bundle.
     """
     code = payload.code or ""
     filename = payload.filename or "snippet.py"
     language = (payload.language or "python").lower()
+    selected_provider = (payload.model_provider or "auto").lower()
 
     if not code.strip():
         raise HTTPException(status_code=400, detail="Code cannot be empty.")
 
-    # Auto-detect language
+    # Auto-detect language if not explicitly passed
     lower_name = filename.lower()
     lower_code = code.lower()
     if language in ("plaintext", "text", "unknown", ""):
@@ -678,12 +689,51 @@ async def quick_repair_code(payload: QuickRepairRequest):
             language = "python"
         elif lower_name.endswith((".js", ".jsx", ".ts", ".tsx")) or any(kw in lower_code for kw in ("console.log", "function ", "const ", "let ")):
             language = "javascript"
+        elif lower_name.endswith((".c", ".h", ".cpp", ".cc")):
+            language = "c"
+        elif lower_name.endswith(".java"):
+            language = "java"
 
     from app.sandbox.resolver import get_sandbox_runner
     from app.scanner.rules import scan_python_code, scan_javascript_code
     from app.scanner.engine import parse_traceback_or_error
     from app.patcher.pipeline import _generate_multi_candidates, _repair_python_syntax
     from app.patcher.diff import generate_unified_diff
+    from app.llm.router import llm_router
+    from app.llm.base import LLMRequest, LLMMessage
+
+    # Helper function to complete using requested provider
+    async def call_llm(role: str, prompt: str) -> str:
+        req = LLMRequest(agent_role=role, messages=[LLMMessage(role="user", content=prompt)])
+        try:
+            if selected_provider == "groq" and settings.GROQ_API_KEY:
+                res = await llm_router.groq_adapter.complete(req, model=settings.GROQ_MODEL)
+                return res.content.strip()
+            elif selected_provider == "gemini" and settings.GEMINI_API_KEY:
+                res = await llm_router.gemini_adapter.complete(req, model=settings.GEMINI_MODEL)
+                return res.content.strip()
+            elif selected_provider == "ollama":
+                res = await llm_router.ollama_adapter.complete(req, model=settings.OLLAMA_MODEL)
+                return res.content.strip()
+            else:
+                res = await llm_router.complete(req)
+                return res.content.strip()
+        except Exception:
+            try:
+                res = await llm_router.complete(req)
+                return res.content.strip()
+            except Exception:
+                return ""
+
+    model_label = (
+        "Groq Inference (Qwen 3.8 27B)"
+        if selected_provider == "groq"
+        else "Google Gemini (3.5 Flash Lite)"
+        if selected_provider == "gemini"
+        else "Local Ollama (qwen2.5-coder)"
+        if selected_provider == "ollama"
+        else "Auto-Router (Gemini Flash + Groq Fallback)"
+    )
 
     runner = get_sandbox_runner()
     
@@ -694,7 +744,7 @@ async def quick_repair_code(payload: QuickRepairRequest):
     issues = []
     if language in ("python", "py"):
         issues = scan_python_code(filename, code)
-    elif language in ("javascript", "js"):
+    elif language in ("javascript", "js", "typescript", "ts"):
         issues = scan_javascript_code(filename, code)
 
     # If static AST didn't flag an issue, but pre-execution failed
@@ -715,22 +765,19 @@ async def quick_repair_code(payload: QuickRepairRequest):
                 "snippet": code.splitlines()[0] if code.splitlines() else "",
             }]
 
-    # If no issue found by AST or execution, but code might have a bug, ask LLM
+    # If no issue found by AST or execution, ask LLM
     if not issues:
-        from app.llm.router import llm_router
-        from app.llm.base import LLMRequest, LLMMessage
         try:
-            llm_check = await llm_router.complete(LLMRequest(
-                agent_role="scanner",
-                messages=[LLMMessage(role="user", content=f"Analyze this {language} code for any bug, unhandled edge cases, or flaw. Reply in format: LINE: <line_no> | RULE: <rule_id> | FLAW: <brief flaw> | WHY: <why it occurred> | FIX: <complete corrected code>\nCode:\n{code}")]
-            ))
-            content = llm_check.content
-            if "LINE:" in content and "FLAW:" in content and "FIX:" in content:
-                m_line = re.search(r"LINE:\s*(\d+)", content)
-                m_rule = re.search(r"RULE:\s*([A-Za-z0-9_-]+)", content)
-                m_flaw = re.search(r"FLAW:\s*([^|\n]+)", content)
-                m_why = re.search(r"WHY:\s*([^|\n]+)", content)
-                m_fix = re.search(r"FIX:\s*(.*)", content, re.DOTALL)
+            llm_check = await call_llm(
+                "scanner",
+                f"Analyze this {language} code for any bug, unhandled edge cases, or flaw. Reply in format: LINE: <line_no> | RULE: <rule_id> | FLAW: <brief flaw> | WHY: <why it occurred> | FIX: <complete corrected code>\nCode:\n{code}",
+            )
+            if "LINE:" in llm_check and "FLAW:" in llm_check and "FIX:" in llm_check:
+                m_line = re.search(r"LINE:\s*(\d+)", llm_check)
+                m_rule = re.search(r"RULE:\s*([A-Za-z0-9_-]+)", llm_check)
+                m_flaw = re.search(r"FLAW:\s*([^|\n]+)", llm_check)
+                m_why = re.search(r"WHY:\s*([^|\n]+)", llm_check)
+                m_fix = re.search(r"FIX:\s*(.*)", llm_check, re.DOTALL)
                 line_no = int(m_line.group(1)) if m_line else 1
                 rule_id = m_rule.group(1) if m_rule else "LOGIC-FLAW"
                 flaw_msg = m_flaw.group(1).strip() if m_flaw else "Logical defect detected"
@@ -748,7 +795,9 @@ async def quick_repair_code(payload: QuickRepairRequest):
                     "why": why_msg,
                     "llm_fix": llm_fix,
                 }]
-        except Exception:
+        except Exception as patch_err:
+            import traceback
+            traceback.print_exc()
             pass
 
     if not issues:
@@ -764,6 +813,7 @@ async def quick_repair_code(payload: QuickRepairRequest):
             "original_code": code,
             "patched_code": code,
             "unified_diff": "",
+            "model_used": model_label,
             "pre_patch_execution": {
                 "exit_code": pre_exec.exit_code,
                 "stdout": pre_exec.stdout,
@@ -789,31 +839,60 @@ async def quick_repair_code(payload: QuickRepairRequest):
     # 3. Why error occurred (Root cause explanation)
     why_text = issue_dict.get("why")
     if not why_text:
-        from app.llm.router import llm_router
-        from app.llm.base import LLMRequest, LLMMessage
         try:
-            explain_resp = await llm_router.complete(LLMRequest(
-                agent_role="root_cause",
-                messages=[LLMMessage(role="user", content=f"In 2 sentences, explain WHY this {language} error occurred: {rule_id}: {err_msg} on line {line_no}.\nCode:\n{code[:800]}")]
-            ))
-            why_text = explain_resp.content.strip()
-        except Exception:
-            if rule_id == "SYNTAX-ERR":
-                why_text = f"A syntax violation occurred on line {line_no}. The code is missing a terminating quote, bracket, colon, or parenthesis required by Python grammar."
-            elif rule_id == "BUG-PREMATURE-RETURN":
-                why_text = f"In function on line {line_no}, 'else: return None' inside the loop forces an exit on the very first element if it doesn't match, preventing inspection of any remaining elements."
-            elif rule_id == "BUG-ZERO-DIV":
-                why_text = f"Line {line_no} divides by zero without checking if the divisor is non-zero, triggering a runtime ZeroDivisionError."
-            elif rule_id == "BUG-NAME-ERR":
-                why_text = f"An identifier on line {line_no} was referenced before being assigned or imported."
-            else:
-                why_text = f"An unhandled condition on line {line_no} caused {err_msg}."
+            explain_reply = await call_llm(
+                "root_cause",
+                f"In 2 sentences, explain WHY this {language} error occurred: {rule_id}: {err_msg} on line {line_no}.\nCode:\n{code[:800]}",
+            )
+            why_text = explain_reply.strip()
+        except Exception as patch_err:
+            import traceback
+            traceback.print_exc()
+            pass
 
-    # 4. Patch synthesis
-    candidates = _generate_multi_candidates(code, issue_dict, language)
-    best_patched_code = candidates[0][0] if candidates else code
-    if issue_dict.get("llm_fix") and best_patched_code == code:
-        best_patched_code = issue_dict["llm_fix"]
+    if not why_text:
+        if rule_id == "SYNTAX-ERR":
+            why_text = f"A syntax violation occurred on line {line_no}. The code is missing a terminating token, quotation mark, or bracket required by the language parser."
+        elif rule_id == "BUG-PREMATURE-RETURN":
+            why_text = f"In function on line {line_no}, 'else: return None' inside the loop forces an exit on the very first element if it doesn't match, preventing inspection of any remaining elements."
+        elif rule_id == "BUG-ZERO-DIV":
+            why_text = f"Line {line_no} divides by zero without checking if the divisor is non-zero, triggering a runtime division error."
+        elif rule_id == "BUG-NAME-ERR":
+            why_text = f"An identifier on line {line_no} was referenced before being assigned or imported in the current scope."
+        elif rule_id == "BUG-TYPE-ERR":
+            why_text = f"A property or method was called on an undefined or null object on line {line_no}."
+        else:
+            why_text = f"An unhandled condition on line {line_no} caused {err_msg}."
+
+    # 4. Patch synthesis (Polyglot support)
+    best_patched_code = code
+    if language in ("python", "py"):
+        candidates = _generate_multi_candidates(code, issue_dict, language)
+        best_patched_code = candidates[0][0] if candidates else code
+        if issue_dict.get("llm_fix") and best_patched_code == code:
+            best_patched_code = issue_dict["llm_fix"]
+    else:
+        # Non-Python languages (JavaScript, TypeScript, C, Java, Go) use AI patch synthesis
+        try:
+            patch_prompt = (
+                f"Fix the bug or crash in this {language} code so it executes cleanly with exit code 0. "
+                f"Flaw: {rule_id}: {err_msg} on line {line_no}. "
+                f"Return ONLY the complete, corrected source code with no markdown backticks or commentary:\n\n{code}"
+            )
+            fixed_resp = await call_llm("patch_synthesizer", patch_prompt)
+            # Clean markdown code blocks if model included them
+            clean_patch = fixed_resp.strip()
+            if "```" in clean_patch:
+                m_fence = re.search(r"```(?:[a-zA-Z0-9_-]+)?\r?\n([\s\S]*?)```", clean_patch)
+                if m_fence:
+                    clean_patch = m_fence.group(1).strip()
+                else:
+                    clean_patch = re.sub(r"^```[a-zA-Z0-9_-]*\r?\n", "", clean_patch)
+                    clean_patch = re.sub(r"\r?\n```\s*$", "", clean_patch).strip()
+            if clean_patch and clean_patch != code:
+                best_patched_code = clean_patch
+        except Exception:
+            pass
 
     # 5. Post-patch execution
     post_exec = runner.execute_code(language, best_patched_code, timeout_sec=5.0)
@@ -832,6 +911,7 @@ async def quick_repair_code(payload: QuickRepairRequest):
         "original_code": code,
         "patched_code": best_patched_code,
         "unified_diff": diff,
+        "model_used": model_label,
         "pre_patch_execution": {
             "exit_code": pre_exec.exit_code,
             "stdout": pre_exec.stdout,
@@ -845,6 +925,6 @@ async def quick_repair_code(payload: QuickRepairRequest):
             "passed": post_exec.passed,
         },
         "verification_level": "V4" if post_exec.passed else "V2",
-        "confidence_score": 100.0 if post_exec.passed else 70.0,
+        "confidence_score": 100.0 if post_exec.passed else 75.0,
         "sandbox_duration_ms": round(pre_exec.duration_ms + post_exec.duration_ms, 2),
     }

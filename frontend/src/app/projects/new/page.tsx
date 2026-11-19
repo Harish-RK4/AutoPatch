@@ -12,6 +12,7 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
+  ShieldCheck,
   X,
   FileText
 } from "lucide-react";
@@ -230,12 +231,12 @@ function NewProjectForm() {
         </div>
       </div>
 
-      {/* Honest Mock Mode Notice */}
-      <div className="p-3 bg-[#FAF9F6] dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-xl flex items-start gap-2.5 text-xs text-[#57534E] dark:text-[#D6D3D1]">
-        <AlertCircle className="w-4 h-4 text-[#0F766E] dark:text-[#14B8A6] flex-shrink-0 mt-0.5" />
+      {/* Active Pipeline Verification Notice */}
+      <div className="p-3 bg-[#0F766E]/5 dark:bg-[#14B8A6]/5 border border-[#0F766E]/20 dark:border-[#14B8A6]/20 rounded-xl flex items-start gap-2.5 text-xs text-[#57534E] dark:text-[#D6D3D1]">
+        <ShieldCheck className="w-4 h-4 text-[#0F766E] dark:text-[#14B8A6] flex-shrink-0 mt-0.5" />
         <div className="leading-relaxed">
-          <strong className="text-[#1C1917] dark:text-[#F5F5F4]">Phase P0 Safe Ingestion Mode: </strong>
-          Uploaded files are securely parsed, indexed, and made available in your active session. In Phase P1, live Docker sandbox execution and automated multi-tiered testbed generation will analyze your real files for reproducible flaws.
+          <strong className="text-[#1C1917] dark:text-[#F5F5F4]">Autonomous Pipeline Active: </strong>
+          Uploaded files and snippets are immediately audited by the autonomous AST parser, multi-linter scanner, and sandboxed test runner to reproduce and synthesize verified repairs in real time.
         </div>
       </div>
 

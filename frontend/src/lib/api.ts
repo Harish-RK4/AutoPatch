@@ -947,6 +947,7 @@ export interface QuickRepairResult {
   original_code: string;
   patched_code: string;
   unified_diff: string;
+  model_used?: string;
   pre_patch_execution: {
     exit_code: number;
     stdout: string;
@@ -967,12 +968,18 @@ export interface QuickRepairResult {
 export async function quickRepairCode(
   code: string,
   language: string = "python",
-  filename: string = "snippet.py"
+  filename: string = "snippet.py",
+  modelProvider: string = "auto"
 ): Promise<QuickRepairResult> {
   const res = await fetch(`${API_BASE}/api/v1/projects/quick-repair`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code, language, filename }),
+    body: JSON.stringify({
+      code,
+      language,
+      filename,
+      model_provider: modelProvider,
+    }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
