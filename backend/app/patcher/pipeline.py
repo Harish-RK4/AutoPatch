@@ -15,6 +15,7 @@ import re
 import uuid
 from typing import Any
 
+from app.core.persistence import load_pipeline_runs, save_pipeline_runs
 from app.indexing.blast_radius import compute_blast_radius
 from app.indexing.coordinator import index_files
 from app.llm.base import LLMMessage, LLMRequest
@@ -28,8 +29,8 @@ from app.patcher.test_generator import generate_test_harness
 from app.sandbox.resolver import get_sandbox_runner
 from app.scanner.engine import scan_project_files
 
-# In-memory stores for runtime inspection and dashboard feeding
-PROJECT_PIPELINE_RUNS: dict[str, dict[str, Any]] = {}
+# In-memory stores with disk persistence for runtime inspection and dashboard feeding
+PROJECT_PIPELINE_RUNS: dict[str, dict[str, Any]] = load_pipeline_runs()
 ACTIVE_PATCHES: dict[str, PatchCandidate] = {}
 
 
@@ -88,6 +89,7 @@ async def run_autonomous_pipeline(
             "reproductions": [],
         }
         PROJECT_PIPELINE_RUNS[project_id] = summary
+        save_pipeline_runs(PROJECT_PIPELINE_RUNS)
         return summary
 
     # Step 3, 4, 5: Process detected issues
@@ -300,6 +302,7 @@ async def run_autonomous_pipeline(
         "reproductions": reproduction_results,
     }
     PROJECT_PIPELINE_RUNS[project_id] = pipeline_result
+    save_pipeline_runs(PROJECT_PIPELINE_RUNS)
     return pipeline_result
 
 
