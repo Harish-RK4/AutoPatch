@@ -13,6 +13,7 @@ node_modules/
 .next/
 out/
 build/
+*.tsbuildinfo
 dist/
 .pnp
 .pnp.js
@@ -32,6 +33,7 @@ venv/
 ENV/
 build/
 develop-eggs/
+*.tsbuildinfo
 dist/
 downloads/
 eggs/
@@ -39,7 +41,8 @@ eggs/
 lib/
 lib64/
 parts/
-sdist/
+s*.tsbuildinfo
+dist/
 var/
 wheels/
 *.egg-info/
