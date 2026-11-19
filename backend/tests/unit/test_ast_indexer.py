@@ -89,7 +89,11 @@ def test_indexing_coordinator_multi_file():
     """Coordinator indexes a polyglot file collection accurately."""
     files = [
         {"path": "app.py", "language": "python", "content": "def main():\n    print('start')\n"},
-        {"path": "client.js", "language": "javascript", "content": "function start() { alert(1); }\n"},
+        {
+            "path": "client.js",
+            "language": "javascript",
+            "content": "function start() { alert(1); }\n",
+        },
         {"path": "data.csv", "language": "csv", "content": "a,b\n1,2\n"},
     ]
     indexes = index_files(files)

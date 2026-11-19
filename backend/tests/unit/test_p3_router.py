@@ -27,6 +27,7 @@ from app.main import app
 
 # ── Rate Limiter Tests ──────────────────────────────────────────────────
 
+
 class TestRateLimiter:
     def test_rate_limiter_allows_under_quota(self):
         limiter = TokenBucketRateLimiter(limits={"test_provider": {"rpm": 3, "tpm": 1000}})
@@ -60,6 +61,7 @@ class TestRateLimiter:
 
 # ── Response Cache Tests ────────────────────────────────────────────────
 
+
 class TestResponseCache:
     def test_cache_key_generation_and_storage(self):
         cache = LLMResponseCache()
@@ -82,6 +84,7 @@ class TestResponseCache:
 
 # ── Provider Adapter Tests ──────────────────────────────────────────────
 
+
 class TestAdapters:
     @pytest.mark.asyncio
     async def test_gemini_adapter_formatting(self):
@@ -92,9 +95,7 @@ class TestAdapters:
             temperature=0.1,
         )
         mock_resp = {
-            "candidates": [
-                {"content": {"parts": [{"text": "Fixed code snippet"}]}}
-            ],
+            "candidates": [{"content": {"parts": [{"text": "Fixed code snippet"}]}}],
             "usageMetadata": {
                 "promptTokenCount": 10,
                 "candidatesTokenCount": 20,
@@ -116,9 +117,7 @@ class TestAdapters:
             temperature=0.0,
         )
         mock_resp = {
-            "choices": [
-                {"message": {"content": "Critic assessment: Approved"}}
-            ],
+            "choices": [{"message": {"content": "Critic assessment: Approved"}}],
             "usage": {
                 "prompt_tokens": 15,
                 "completion_tokens": 8,
@@ -142,6 +141,7 @@ class TestAdapters:
 
 # ── Router Fallback Chain Tests ─────────────────────────────────────────
 
+
 class TestRouterFallback:
     @pytest.mark.asyncio
     async def test_router_fallback_when_primary_fails(self):
@@ -154,12 +154,21 @@ class TestRouterFallback:
                 messages=[LLMMessage(role="user", content="Find defect")],
             )
             # Simulate primary failing, secondary succeeding
-            with patch.object(
-                llm_router.gemini_adapter, "complete", side_effect=RuntimeError("Gemini 503 Overloaded")
-            ), patch.object(
-                llm_router.groq_adapter, "complete", return_value=LLMResponse(
-                    provider="groq", model="qwen/qwen3.8-27b", content="Root cause found by Groq"
-                )
+            with (
+                patch.object(
+                    llm_router.gemini_adapter,
+                    "complete",
+                    side_effect=RuntimeError("Gemini 503 Overloaded"),
+                ),
+                patch.object(
+                    llm_router.groq_adapter,
+                    "complete",
+                    return_value=LLMResponse(
+                        provider="groq",
+                        model="qwen/qwen3.8-27b",
+                        content="Root cause found by Groq",
+                    ),
+                ),
             ):
                 res = await llm_router.route(req)
                 assert res.provider == "groq"
@@ -176,10 +185,13 @@ class TestRouterFallback:
                 agent_role="scanner",
                 messages=[LLMMessage(role="user", content="Scan code")],
             )
-            with patch.object(
-                llm_router.gemini_adapter, "complete", side_effect=RuntimeError("Gemini 503")
-            ), patch.object(
-                llm_router.groq_adapter, "complete", side_effect=RuntimeError("Groq 429")
+            with (
+                patch.object(
+                    llm_router.gemini_adapter, "complete", side_effect=RuntimeError("Gemini 503")
+                ),
+                patch.object(
+                    llm_router.groq_adapter, "complete", side_effect=RuntimeError("Groq 429")
+                ),
             ):
                 res = await llm_router.route(req)
                 assert res.provider == "mock"
@@ -188,6 +200,7 @@ class TestRouterFallback:
 
 
 # ── Settings API Endpoint Tests ─────────────────────────────────────────
+
 
 class TestSettingsEndpoints:
     @pytest.mark.asyncio

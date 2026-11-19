@@ -35,7 +35,9 @@ def test_production_guard_accepts_valid_production_config():
 
 def test_production_guard_rejects_local_dev_sandbox():
     """Confirms that SANDBOX_MODE=local_dev in production raises a RuntimeError."""
-    with pytest.raises(RuntimeError, match="SANDBOX_MODE=local_dev is strictly forbidden in production"):
+    with pytest.raises(
+        RuntimeError, match="SANDBOX_MODE=local_dev is strictly forbidden in production"
+    ):
         Settings(
             APP_ENV="production",
             DEMO_MODE=False,

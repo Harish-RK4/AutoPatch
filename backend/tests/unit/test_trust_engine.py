@@ -9,13 +9,19 @@ from app.patcher.test_generator import generate_test_harness
 
 # ── Test Generator ──────────────────────────────────────────────────────
 
+
 class TestTestGenerator:
     def test_python_eval_test(self):
         harness = generate_test_harness(
             file_path="app.py",
             language="python",
             function_name="process",
-            issue={"rule_id": "SEC-EVAL", "line_number": 5, "snippet": "eval(x)", "message": "eval"},
+            issue={
+                "rule_id": "SEC-EVAL",
+                "line_number": 5,
+                "snippet": "eval(x)",
+                "message": "eval",
+            },
             original_code="eval(x)",
         )
         assert "unittest" in harness
@@ -26,7 +32,12 @@ class TestTestGenerator:
             file_path="math.py",
             language="python",
             function_name=None,
-            issue={"rule_id": "BUG-ZERO-DIV", "line_number": 3, "snippet": "100 / 0", "message": "div"},
+            issue={
+                "rule_id": "BUG-ZERO-DIV",
+                "line_number": 3,
+                "snippet": "100 / 0",
+                "message": "div",
+            },
             original_code="x = 100 / 0",
         )
         assert "unittest" in harness
@@ -37,7 +48,12 @@ class TestTestGenerator:
             file_path="app.js",
             language="javascript",
             function_name=None,
-            issue={"rule_id": "SEC-JS-EVAL", "line_number": 1, "snippet": "eval(x)", "message": "eval"},
+            issue={
+                "rule_id": "SEC-JS-EVAL",
+                "line_number": 1,
+                "snippet": "eval(x)",
+                "message": "eval",
+            },
             original_code="eval(x)",
         )
         assert "assert" in harness
@@ -58,7 +74,12 @@ class TestTestGenerator:
             file_path="config.py",
             language="python",
             function_name=None,
-            issue={"rule_id": "SEC-HARDCODED-SECRET", "line_number": 1, "snippet": "api_key = 'abc123'", "message": "secret"},
+            issue={
+                "rule_id": "SEC-HARDCODED-SECRET",
+                "line_number": 1,
+                "snippet": "api_key = 'abc123'",
+                "message": "secret",
+            },
             original_code="api_key = 'abc123'",
         )
         assert "SECRET_PATTERNS" in harness or "secret" in harness.lower()
@@ -66,13 +87,19 @@ class TestTestGenerator:
 
 # ── Critic Agent ────────────────────────────────────────────────────────
 
+
 class TestCriticAgent:
     def test_high_quality_patch_accepted(self):
         verdict = evaluate_candidate(
             candidate_id="patch-001",
             original_code="x = eval(input())",
             patched_code="import ast\nx = ast.literal_eval(input())",
-            issue={"rule_id": "SEC-EVAL", "line_number": 1, "snippet": "eval(input())", "message": "eval"},
+            issue={
+                "rule_id": "SEC-EVAL",
+                "line_number": 1,
+                "snippet": "eval(input())",
+                "message": "eval",
+            },
             pre_patch_failed=True,
             post_patch_passed=True,
         )
@@ -86,7 +113,12 @@ class TestCriticAgent:
             candidate_id="patch-002",
             original_code="x = 1 + 2",
             patched_code="x = eval('1 + 2')",
-            issue={"rule_id": "BUG-ZERO-DIV", "line_number": 1, "snippet": "1 + 2", "message": "test"},
+            issue={
+                "rule_id": "BUG-ZERO-DIV",
+                "line_number": 1,
+                "snippet": "1 + 2",
+                "message": "test",
+            },
             pre_patch_failed=False,
             post_patch_passed=True,
         )
@@ -118,6 +150,7 @@ class TestCriticAgent:
 
 
 # ── Confidence Scoring ──────────────────────────────────────────────────
+
 
 class TestConfidenceScoring:
     def test_v4_cap(self):
@@ -173,6 +206,7 @@ class TestConfidenceScoring:
 
 # ── Blast Radius ────────────────────────────────────────────────────────
 
+
 class TestBlastRadius:
     def _make_index(self) -> list[FileIndex]:
         return [
@@ -180,7 +214,9 @@ class TestBlastRadius:
                 file_path="calculator.py",
                 language="python",
                 symbols=[
-                    CodeSymbol(name="calculate_percentage", kind="function", line_start=5, line_end=12),
+                    CodeSymbol(
+                        name="calculate_percentage", kind="function", line_start=5, line_end=12
+                    ),
                     CodeSymbol(name="generate_report", kind="function", line_start=15, line_end=25),
                 ],
                 call_graph=[
@@ -226,9 +262,7 @@ class TestBlastRadius:
         indices = [
             FileIndex(file_path="isolated.py", language="python", symbols=[], call_graph=[], loc=5),
         ]
-        report = compute_blast_radius(
-            indices, "isolated.py", 1, 3, "x = 1", "x = 2"
-        )
+        report = compute_blast_radius(indices, "isolated.py", 1, 3, "x = 1", "x = 2")
         assert len(report.direct_callers) == 0
         assert report.blast_score >= 5
 
@@ -248,13 +282,20 @@ class TestBlastRadius:
 
 # ── Reproducer Agent ────────────────────────────────────────────────────
 
+
 class TestReproducerAgent:
     def test_reproducer_python_eval(self):
         from app.sandbox.local_runner import LocalSubprocessSandboxRunner
+
         runner = LocalSubprocessSandboxRunner()
         reproducer = ReproducerAgent(runner)
         result = reproducer.reproduce(
-            issue={"rule_id": "SEC-EVAL", "line_number": 1, "snippet": "eval('1+1')", "message": "eval"},
+            issue={
+                "rule_id": "SEC-EVAL",
+                "line_number": 1,
+                "snippet": "eval('1+1')",
+                "message": "eval",
+            },
             language="python",
             original_code="result = eval('1+1')",
         )
@@ -264,6 +305,7 @@ class TestReproducerAgent:
 
     def test_reproducer_unsupported_language(self):
         from app.sandbox.local_runner import LocalSubprocessSandboxRunner
+
         runner = LocalSubprocessSandboxRunner()
         reproducer = ReproducerAgent(runner)
         result = reproducer.reproduce(
