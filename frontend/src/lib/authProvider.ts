@@ -16,7 +16,8 @@ export interface IAuthProvider {
   signIn(email: string, pass: string): Promise<AuthResponse>;
   signUp(fullName: string, email: string, pass: string): Promise<AuthResponse>;
   signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse>;
-  signInWithGoogle?(email: string, fullName?: string): Promise<AuthResponse>;
+  sendOtp?(email: string, phone?: string): Promise<{ success: boolean; otp?: string; error?: string }>;
+  verifyOtp?(email: string, token: string): Promise<AuthResponse>;
   signOut(): Promise<void>;
   getSession(): Promise<AuthUser | null>;
   onAuthStateChange(callback: (user: AuthUser | null) => void): () => void;
@@ -73,19 +74,26 @@ export class DemoAuthProvider implements IAuthProvider {
     return { user, error: null };
   }
 
-  async signInWithGoogle(email: string = "developer@gmail.com", fullName: string = "Google Developer"): Promise<AuthResponse> {
-    const user: AuthUser = {
-      id: `google-${Date.now().toString(36)}`,
-      email,
-      fullName,
-      role: "developer",
-      isDemo: true,
-    };
-    if (typeof window !== "undefined") {
-      localStorage.setItem("autopatch_session", JSON.stringify(user));
-      document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+  async sendOtp(email: string): Promise<{ success: boolean; otp?: string; error?: string }> {
+    return { success: true, otp: "123456" };
+  }
+
+  async verifyOtp(email: string, token: string): Promise<AuthResponse> {
+    if (token === "123456") {
+      const user: AuthUser = {
+        id: `user-${Date.now().toString(36)}`,
+        email,
+        fullName: email.split("@")[0],
+        role: "developer",
+        isDemo: true,
+      };
+      if (typeof window !== "undefined") {
+        localStorage.setItem("autopatch_session", JSON.stringify(user));
+        document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+      }
+      return { user, error: null };
     }
-    return { user, error: null };
+    return { user: null, error: "Invalid verification code." };
   }
 
   async signOut(): Promise<void> {
@@ -188,54 +196,59 @@ export class SupabaseAuthProvider implements IAuthProvider {
   }
 
   /**
-   * Google Sign-In via Supabase Admin Verified OTP Session
+   * Send genuine OTP via Supabase Admin API
    */
-  async signInWithGoogle(email: string, fullName?: string): Promise<AuthResponse> {
+  async sendOtp(email: string, phone?: string): Promise<{ success: boolean; otp?: string; error?: string }> {
+    try {
+      const res = await fetch("/api/auth/otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send", email: email.trim().toLowerCase(), phone }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        return { success: false, error: data.error || "Failed to send verification code." };
+      }
+
+      return { success: true, otp: data.otp };
+    } catch (err: any) {
+      return { success: false, error: err?.message || "OTP service unavailable." };
+    }
+  }
+
+  /**
+   * Verify genuine OTP code directly against Supabase
+   */
+  async verifyOtp(email: string, token: string): Promise<AuthResponse> {
     if (!this.supabase) {
       return { user: null, error: "Supabase credentials missing." };
     }
 
-    try {
-      const res = await fetch("/api/auth/google", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), full_name: fullName }),
-      });
+    const { data, error } = await this.supabase.auth.verifyOtp({
+      email: email.trim().toLowerCase(),
+      token: token.trim(),
+      type: "magiclink",
+    });
 
-      const data = await res.json();
-      if (!res.ok || !data.otp) {
-        return { user: null, error: data.error || "Failed to initiate Google sign-in." };
-      }
-
-      // Verify OTP with Supabase client to establish real JWT session
-      const verifyRes = await this.supabase.auth.verifyOtp({
-        email: data.email,
-        token: data.otp,
-        type: "magiclink",
-      });
-
-      if (verifyRes.error || !verifyRes.data.user) {
-        return { user: null, error: verifyRes.error?.message || "Failed to verify Google session." };
-      }
-
-      const u = verifyRes.data.user;
-      const user: AuthUser = {
-        id: u.id,
-        email: u.email || data.email,
-        fullName: u.user_metadata?.full_name || fullName || data.email.split("@")[0],
-        role: (u.user_metadata?.role as any) || "developer",
-        isDemo: false,
-      };
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("autopatch_session", JSON.stringify(user));
-        document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
-      }
-
-      return { user, error: null };
-    } catch (err: any) {
-      return { user: null, error: err?.message || "Google sign-in failed." };
+    if (error || !data.user) {
+      return { user: null, error: error?.message || "Invalid or expired verification code." };
     }
+
+    const user: AuthUser = {
+      id: data.user.id,
+      email: data.user.email || email,
+      fullName: data.user.user_metadata?.full_name || email.split("@")[0],
+      role: (data.user.user_metadata?.role as any) || "developer",
+      isDemo: false,
+    };
+
+    if (typeof window !== "undefined") {
+      localStorage.setItem("autopatch_session", JSON.stringify(user));
+      document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+    }
+
+    return { user, error: null };
   }
 
   async signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse> {
@@ -248,7 +261,6 @@ export class SupabaseAuthProvider implements IAuthProvider {
       provider,
       options: {
         redirectTo: `${origin}/auth/callback`,
-        skipBrowserRedirect: true,
       },
     });
 

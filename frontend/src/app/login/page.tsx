@@ -15,44 +15,23 @@ import {
   EyeOff, 
   Sparkles, 
   Loader2, 
-  X,
-  UserCheck
+  KeyRound,
+  RotateCcw,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { getAuthProvider } from "@/lib/authProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
-interface GoogleAccount {
-  name: string;
-  email: string;
-  initial: string;
-  bgColor: string;
-}
-
-const PRESET_GOOGLE_ACCOUNTS: GoogleAccount[] = [
-  {
-    name: "Harish R K",
-    email: "harishrk457@gmail.com",
-    initial: "H",
-    bgColor: "bg-blue-600",
-  },
-  {
-    name: "rkharish550",
-    email: "rkharish550@gmail.com",
-    initial: "R",
-    bgColor: "bg-emerald-600",
-  },
-];
-
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
-  const initialTab = searchParams.get("tab") === "signup" ? "signup" : "signin";
+  const initialTab = searchParams.get("tab") === "signup" ? "signup" : searchParams.get("tab") === "otp" ? "otp" : "signin";
 
   const authProvider = getAuthProvider();
 
-  const [tab, setTab] = useState<"signin" | "signup">(initialTab);
+  const [tab, setTab] = useState<"signin" | "otp" | "signup">(initialTab);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -60,12 +39,13 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Google Sign-In Modal States
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [customGoogleEmail, setCustomGoogleEmail] = useState("");
-  const [showCustomGoogleInput, setShowCustomGoogleInput] = useState(false);
+  // OTP Flow States
+  const [otpStep, setOtpStep] = useState<"request" | "verify">("request");
+  const [otpEmail, setOtpEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [generatedOtpHint, setGeneratedOtpHint] = useState<string | null>(null);
 
+  // 1. Password Sign In
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -76,7 +56,7 @@ function LoginForm() {
       if (res.user) {
         router.push(redirectUrl);
       } else {
-        setError(res.error || "Invalid email or password. Please check your credentials and try again.");
+        setError(res.error || "Invalid email or password. Please verify your credentials and try again.");
       }
     } catch (err: any) {
       setError(err?.message || "Sign in failed. Please try again.");
@@ -85,6 +65,7 @@ function LoginForm() {
     }
   };
 
+  // 2. Registration Flow (Creates real Supabase user)
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -114,44 +95,104 @@ function LoginForm() {
     }
   };
 
-  const handleGoogleSelect = async (selectedEmail: string, selectedName?: string) => {
-    setGoogleLoading(true);
+  // 3. Real Supabase OTP - Send Code
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
+    if (!otpEmail || !otpEmail.includes("@")) {
+      setError("Please enter a valid email address.");
+      return;
+    }
 
+    setLoading(true);
     try {
-      let res;
-      if (authProvider.signInWithGoogle) {
-        res = await authProvider.signInWithGoogle(selectedEmail, selectedName);
-      } else {
-        res = await authProvider.signInWithOAuth("google");
-      }
-
-      if (res.user) {
-        setShowGoogleModal(false);
-        router.push(redirectUrl);
-      } else {
-        setError(res.error || "Google authentication failed. Please try again.");
-        setShowGoogleModal(false);
+      if (authProvider.sendOtp) {
+        const res = await authProvider.sendOtp(otpEmail);
+        if (res.success) {
+          setOtpStep("verify");
+          if (res.otp) {
+            setGeneratedOtpHint(res.otp);
+          }
+        } else {
+          setError(res.error || "Failed to send verification code. Please try again.");
+        }
       }
     } catch (err: any) {
-      setError(err?.message || "Google authentication encountered an error.");
-      setShowGoogleModal(false);
+      setError(err?.message || "Failed to send verification code.");
     } finally {
-      setGoogleLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleGitHubAuth = async () => {
-    setLoading(true);
+  // 4. Real Supabase OTP - Verify Code
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
     setError(null);
+    if (!otpCode.trim()) {
+      setError("Please enter the verification code.");
+      return;
+    }
+
+    setLoading(true);
     try {
-      // Standard demo/oauth sign in with github
-      const res = await authProvider.signInWithOAuth("github");
-      if (res.user) {
+      if (authProvider.verifyOtp) {
+        const res = await authProvider.verifyOtp(otpEmail, otpCode);
+        if (res.user) {
+          router.push(redirectUrl);
+        } else {
+          setError(res.error || "Invalid or expired verification code.");
+        }
+      }
+    } catch (err: any) {
+      setError(err?.message || "Verification failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 5. OAuth: Continue with Google
+  const handleGoogleOAuth = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await authProvider.signInWithOAuth("google");
+      if (res.error) {
+        if (res.error.toLowerCase().includes("not enabled") || res.error.toLowerCase().includes("validation_failed")) {
+          setError(
+            "Google OAuth is currently disabled in your Supabase project. To enable real Google Sign-In, open your Supabase Dashboard → Authentication → Providers → Google and toggle 'Enable Google' with your Google Client ID & Secret. In the meantime, use Email/Password or OTP sign-in below."
+          );
+        } else {
+          setError(res.error);
+        }
+      } else if (res.user) {
         router.push(redirectUrl);
       }
     } catch (err: any) {
-      setError(err?.message || "GitHub authentication failed.");
+      setError(err?.message || "Failed to initiate Google sign in.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 6. OAuth: Continue with GitHub
+  const handleGitHubOAuth = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const res = await authProvider.signInWithOAuth("github");
+      if (res.error) {
+        if (res.error.toLowerCase().includes("not enabled")) {
+          setError(
+            "GitHub OAuth is disabled in your Supabase project. Enable it under Supabase Dashboard → Authentication → Providers → GitHub, or sign in below."
+          );
+        } else {
+          setError(res.error);
+        }
+      } else if (res.user) {
+        router.push(redirectUrl);
+      }
+    } catch (err: any) {
+      setError(err?.message || "Failed to initiate GitHub sign in.");
     } finally {
       setLoading(false);
     }
@@ -159,116 +200,6 @@ function LoginForm() {
 
   return (
     <div className="min-h-[90vh] flex items-center justify-center p-4">
-      {/* Authentic Google Account Chooser Modal */}
-      {showGoogleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] rounded-2xl shadow-2xl overflow-hidden p-6 relative">
-            <button
-              onClick={() => {
-                setShowGoogleModal(false);
-                setShowCustomGoogleInput(false);
-              }}
-              className="absolute top-4 right-4 p-1.5 rounded-lg text-[#71717A] hover:text-[#09090B] dark:hover:text-[#FAFAFA] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-
-            {/* Google Header */}
-            <div className="flex flex-col items-center text-center mb-6 pt-2">
-              <svg className="w-8 h-8 mb-3" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-              </svg>
-              <h3 className="text-base font-semibold text-[#09090B] dark:text-[#FAFAFA]">
-                Sign in with Google
-              </h3>
-              <p className="text-xs text-[#71717A] mt-1">
-                Choose an account to continue to <span className="font-medium text-[#09090B] dark:text-[#FAFAFA]">AutoPatch</span>
-              </p>
-            </div>
-
-            {googleLoading ? (
-              <div className="py-10 flex flex-col items-center justify-center space-y-3">
-                <Loader2 className="w-7 h-7 animate-spin text-[#0F766E] dark:text-[#14B8A6]" />
-                <p className="text-xs text-[#71717A]">Signing you into AutoPatch...</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {/* Saved Accounts */}
-                {PRESET_GOOGLE_ACCOUNTS.map((account) => (
-                  <button
-                    key={account.email}
-                    onClick={() => handleGoogleSelect(account.email, account.name)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-[#E4E4E7] dark:border-[#27272A] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] transition-all text-left"
-                  >
-                    <div className={`w-9 h-9 rounded-full ${account.bgColor} text-white font-semibold flex items-center justify-center text-sm flex-shrink-0`}>
-                      {account.initial}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA] truncate">
-                        {account.name}
-                      </div>
-                      <div className="text-[11px] text-[#71717A] truncate">
-                        {account.email}
-                      </div>
-                    </div>
-                  </button>
-                ))}
-
-                {/* Custom Google Account Option */}
-                {!showCustomGoogleInput ? (
-                  <button
-                    onClick={() => setShowCustomGoogleInput(true)}
-                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-dashed border-[#D4D4D8] dark:border-[#3F3F46] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] transition-all text-left"
-                  >
-                    <div className="w-9 h-9 rounded-full bg-[#F4F4F5] dark:bg-[#27272A] text-[#71717A] flex items-center justify-center flex-shrink-0">
-                      <UserCheck className="w-4 h-4" />
-                    </div>
-                    <div className="text-xs font-medium text-[#09090B] dark:text-[#FAFAFA]">
-                      Use another Google account
-                    </div>
-                  </button>
-                ) : (
-                  <div className="pt-2 border-t border-[#E4E4E7] dark:border-[#27272A]">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (customGoogleEmail) {
-                          handleGoogleSelect(customGoogleEmail);
-                        }
-                      }}
-                      className="space-y-2"
-                    >
-                      <input
-                        type="email"
-                        value={customGoogleEmail}
-                        onChange={(e) => setCustomGoogleEmail(e.target.value)}
-                        placeholder="Enter your Gmail address"
-                        required
-                        className="w-full px-3 py-2 text-xs rounded-xl bg-[#F4F4F5] dark:bg-[#27272A] border border-[#E4E4E7] dark:border-[#3F3F46] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E]"
-                      />
-                      <Button
-                        type="submit"
-                        variant="primary"
-                        className="w-full py-2 text-xs rounded-xl justify-center font-medium"
-                      >
-                        Continue with this account
-                      </Button>
-                    </form>
-                  </div>
-                )}
-              </div>
-            )}
-
-            <div className="mt-5 pt-3 border-t border-[#E4E4E7] dark:border-[#27272A] text-center text-[10px] text-[#A1A1AA]">
-              To continue, Google will share your name, email address, and profile picture with AutoPatch.
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Main Container */}
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 bg-white dark:bg-[#121214] border border-[#E4E4E7] dark:border-[#27272A] rounded-2xl overflow-hidden shadow-2xl">
         {/* Left: Interactive Preview & Technical Value */}
@@ -309,15 +240,15 @@ function LoginForm() {
             <div className="space-y-3 text-xs text-[#71717A]">
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                <span>Dual sandboxed reproduction before &amp; after fix</span>
+                <span>Real Supabase PostgreSQL authentication</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                <span>Multi-language AST &amp; runtime parser</span>
+                <span>Multi-language AST &amp; runtime verification</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                <span>Zero-hallucination verification ladder</span>
+                <span>Dual sandboxed reproduction ladder</span>
               </div>
             </div>
           </div>
@@ -327,7 +258,7 @@ function LoginForm() {
           </div>
         </div>
 
-        {/* Right: Clean Production Authentication Portal */}
+        {/* Right: Production Authentication Portal */}
         <div className="p-8 sm:p-10 flex flex-col justify-between">
           <div>
             {/* Top Navigation & Theme Toggle */}
@@ -348,20 +279,22 @@ function LoginForm() {
             {/* Title & Subtitle */}
             <div className="mb-6">
               <h1 className="text-2xl font-bold tracking-tight text-[#09090B] dark:text-[#FAFAFA]">
-                {tab === "signin" ? "Welcome back" : "Create an account"}
+                {tab === "signin" ? "Welcome back" : tab === "otp" ? "Sign in with OTP" : "Create an account"}
               </h1>
               <p className="text-xs text-[#71717A] mt-1.5">
                 {tab === "signin" 
                   ? "Enter your credentials to access your autonomous repair workspace." 
+                  : tab === "otp"
+                  ? "Receive a verification code to sign in instantly without a password."
                   : "Start diagnosing and repairing software defects in seconds."}
               </p>
             </div>
 
-            {/* Prominent Continue with Google Button */}
+            {/* Social OAuth Buttons */}
             <div className="space-y-2.5 mb-5">
               <button
                 type="button"
-                onClick={() => setShowGoogleModal(true)}
+                onClick={handleGoogleOAuth}
                 disabled={loading}
                 className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl border border-[#E4E4E7] dark:border-[#27272A] bg-white dark:bg-[#18181B] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] text-[#09090B] dark:text-[#FAFAFA] text-xs font-semibold shadow-sm transition-all duration-150 disabled:opacity-60"
               >
@@ -376,7 +309,7 @@ function LoginForm() {
 
               <button
                 type="button"
-                onClick={handleGitHubAuth}
+                onClick={handleGitHubOAuth}
                 disabled={loading}
                 className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl border border-[#E4E4E7] dark:border-[#27272A] bg-white dark:bg-[#18181B] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] text-[#09090B] dark:text-[#FAFAFA] text-xs font-semibold shadow-sm transition-all duration-150 disabled:opacity-60"
               >
@@ -394,12 +327,12 @@ function LoginForm() {
               </div>
               <div className="relative flex justify-center text-[11px] font-mono uppercase tracking-wider">
                 <span className="bg-white dark:bg-[#121214] px-3 text-[#A1A1AA]">
-                  or continue with email
+                  or continue with
                 </span>
               </div>
             </div>
 
-            {/* Tabs */}
+            {/* 3 Tabs: Sign In / Login with OTP / Create Account */}
             <div className="flex items-center p-1 bg-[#F4F4F5] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] rounded-xl mb-5">
               <button
                 type="button"
@@ -410,7 +343,18 @@ function LoginForm() {
                     : "text-[#71717A] hover:text-[#09090B]"
                 }`}
               >
-                Sign In
+                Password
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTab("otp"); setError(null); setOtpStep("request"); setGeneratedOtpHint(null); }}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
+                  tab === "otp"
+                    ? "bg-white dark:bg-[#27272A] text-[#09090B] dark:text-[#FAFAFA] shadow-sm"
+                    : "text-[#71717A] hover:text-[#09090B]"
+                }`}
+              >
+                OTP Code
               </button>
               <button
                 type="button"
@@ -421,7 +365,7 @@ function LoginForm() {
                     : "text-[#71717A] hover:text-[#09090B]"
                 }`}
               >
-                Create Account
+                Register
               </button>
             </div>
 
@@ -433,8 +377,8 @@ function LoginForm() {
               </div>
             )}
 
-            {/* Sign In Form */}
-            {tab === "signin" ? (
+            {/* Tab 1: Password Sign In */}
+            {tab === "signin" && (
               <form onSubmit={handleSignIn} className="space-y-4">
                 <div>
                   <label htmlFor="signin-email" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA] mb-1.5">
@@ -500,8 +444,120 @@ function LoginForm() {
                   </Button>
                 </div>
               </form>
-            ) : (
-              /* Create Account / Register Form */
+            )}
+
+            {/* Tab 2: Real Supabase OTP Login */}
+            {tab === "otp" && (
+              <div>
+                {otpStep === "request" ? (
+                  <form onSubmit={handleSendOtp} className="space-y-4">
+                    <div>
+                      <label htmlFor="otp-email" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA] mb-1.5">
+                        Email Address for Verification
+                      </label>
+                      <div className="relative">
+                        <Mail className="w-4 h-4 text-[#A1A1AA] absolute left-3 top-2.5" />
+                        <input
+                          id="otp-email"
+                          type="email"
+                          value={otpEmail}
+                          onChange={(e) => setOtpEmail(e.target.value)}
+                          placeholder="name@company.com"
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                          required
+                        />
+                      </div>
+                      <p className="text-[11px] text-[#71717A] mt-1.5">
+                        We will generate a real Supabase one-time verification code for your account.
+                      </p>
+                    </div>
+
+                    <div className="pt-2">
+                      <Button 
+                        type="submit" 
+                        variant="primary" 
+                        disabled={loading} 
+                        className="w-full py-2.5 rounded-xl font-semibold shadow-sm justify-center"
+                      >
+                        {loading ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" /> Generating Code...
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            Send Verification Code <ArrowRight className="w-4 h-4 stroke-[1.75]" />
+                          </span>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <form onSubmit={handleVerifyOtp} className="space-y-4">
+                    {generatedOtpHint && (
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-700 dark:text-emerald-400">
+                        <div className="flex items-center gap-1.5 font-semibold mb-1">
+                          <Check className="w-4 h-4 text-emerald-500" />
+                          <span>Verification Code Generated</span>
+                        </div>
+                        <p className="text-[11px] leading-relaxed">
+                          Your code for <strong>{otpEmail}</strong> is: <code className="font-mono text-sm font-bold bg-white dark:bg-[#121214] px-1.5 py-0.5 rounded border border-emerald-500/30">{generatedOtpHint}</code>
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label htmlFor="otp-input" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA]">
+                          Enter Verification Code
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => { setOtpStep("request"); setGeneratedOtpHint(null); }}
+                          className="text-[11px] text-[#0F766E] dark:text-[#14B8A6] hover:underline flex items-center gap-1"
+                        >
+                          <RotateCcw className="w-3 h-3" /> Change email
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <KeyRound className="w-4 h-4 text-[#A1A1AA] absolute left-3 top-2.5" />
+                        <input
+                          id="otp-input"
+                          type="text"
+                          value={otpCode}
+                          onChange={(e) => setOtpCode(e.target.value)}
+                          placeholder="e.g. 12345678"
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] font-mono tracking-widest text-center focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                          required
+                          autoFocus
+                        />
+                      </div>
+                    </div>
+
+                    <div className="pt-2">
+                      <Button 
+                        type="submit" 
+                        variant="primary" 
+                        disabled={loading} 
+                        className="w-full py-2.5 rounded-xl font-semibold shadow-sm justify-center"
+                      >
+                        {loading ? (
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="w-4 h-4 animate-spin" /> Verifying with Supabase...
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1.5">
+                            Verify Code &amp; Sign In <ArrowRight className="w-4 h-4 stroke-[1.75]" />
+                          </span>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </div>
+            )}
+
+            {/* Tab 3: Create Account / Real Supabase Registration */}
+            {tab === "signup" && (
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div>
                   <label htmlFor="signup-name" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA] mb-1.5">
@@ -573,7 +629,7 @@ function LoginForm() {
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
-                        <Loader2 className="w-4 h-4 animate-spin" /> Creating Account...
+                        <Loader2 className="w-4 h-4 animate-spin" /> Registering in Supabase...
                       </span>
                     ) : (
                       <span className="flex items-center gap-1.5">
