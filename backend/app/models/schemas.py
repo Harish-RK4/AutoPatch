@@ -26,6 +26,9 @@ class ProjectResponse(BaseModel):
     created_at: str
     filename: str | None = None
     files: list[dict[str, Any]] = Field(default_factory=list)
+    patched_content: str | None = None
+    unified_diff: str | None = None
+    patches: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class BugSummary(BaseModel):
