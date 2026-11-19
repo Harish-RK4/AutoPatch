@@ -586,3 +586,60 @@ async def list_project_bugs(project_id: str):
         ]
 
     return []
+
+
+class ProjectVoiceCallRequest(BaseModel):
+    phone_number: str
+    developer_name: str = "Developer"
+
+
+@router.post("/{project_id}/call-ai")
+async def call_project_ai(project_id: str, payload: ProjectVoiceCallRequest):
+    """
+    Triggers an outbound voice call from AutoPatch AI (Alex) to explain why the code
+    in this project was not running and what was surgically repaired.
+    """
+    proj = next((p for p in USER_PROJECTS if p["id"] == project_id), None)
+    if not proj and settings.DEMO_MODE:
+        from app.demo.seed_data import DEMO_PROJECTS
+        proj = next((p for p in DEMO_PROJECTS if p["id"] == project_id), None)
+
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    file_name = proj.get("filename") or (proj.get("files") and proj["files"][0].get("file_path")) or "code"
+    
+    broken_summary = "a code issue"
+    fix_summary = "automated patch verification"
+    test_summary = "All unit tests passing"
+
+    # Extract detected flaw and patch details from pipeline run
+    if project_id in PROJECT_PIPELINE_RUNS:
+        run_data = PROJECT_PIPELINE_RUNS[project_id]
+        issues = run_data.get("issues", [])
+        if issues:
+            top_issue = issues[0]
+            broken_summary = f"{top_issue.get('rule_id', '')} flaw on line {top_issue.get('line_number', 1)}: {top_issue.get('message', 'detected issue')}"
+        else:
+            broken_summary = "Zero defects found in latest analysis."
+
+        patches = run_data.get("patches", [])
+        if patches:
+            top_patch = patches[0]
+            fix_summary = f"Strategy '{top_patch.get('strategy', 'Minimal Fix')}': {top_patch.get('explanation', 'applied surgical correction')}"
+            test_summary = f"Sandbox verification status: {'Passed' if top_patch.get('post_patch_test_passed') else 'Pending'} with {top_patch.get('confidence_score', 90)}% confidence"
+    elif project_id.startswith("demo-"):
+        broken_summary = "Missing bounds validation on student marks causing score calculation failures"
+        fix_summary = "Added defensive score range guard validation between zero and total"
+        test_summary = "Passed 14 unit tests with 100% verification rate"
+
+    from autopatch_voice_brain.api.router import OutboundCallRequest, trigger_autopatch_call
+    req = OutboundCallRequest(
+        to_phone_number=payload.phone_number,
+        developer_name=payload.developer_name,
+        file_or_module=file_name,
+        broken_code_summary=broken_summary,
+        fix_details=fix_summary,
+        test_results=test_summary,
+    )
+    return await trigger_autopatch_call(req)

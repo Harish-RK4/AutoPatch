@@ -20,6 +20,16 @@ from app.api.routes_webhook import router as webhook_router
 from app.core.config import settings
 from app.core.queue import job_queue
 
+import sys
+from pathlib import Path
+
+# Ensure project root is in sys.path for autopatch_voice_brain
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from autopatch_voice_brain import autopatch_voice_router
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -55,6 +65,7 @@ app.include_router(devices_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(intake_router, prefix="/api/v1")
 app.include_router(webhook_router, prefix="/api/v1")
+app.include_router(autopatch_voice_router, prefix="/api/v1")
 
 
 @app.get("/health")
