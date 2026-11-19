@@ -81,3 +81,43 @@ async def test_type_error_detection_and_repair():
     exec_res = runner.execute_code("python", top_patch["patched_code"])
     print("\nSTDERR:\n", exec_res.stderr)
     assert exec_res.exit_code == 0
+
+
+@pytest.mark.asyncio
+async def test_premature_loop_return_detection_and_repair():
+    runner = get_sandbox_runner()
+    user_code = """students = []
+
+def add_student(name, age, marks):
+    students.append({"name": name, "age": age, "marks": marks})
+
+def find_student(name):
+    for student in students:
+        if student["name"] == name:
+            return student
+        else:
+            return None
+
+def update_marks(name, new_marks):
+    student = find_student(name)
+    if student:
+        student["marks"] = new_marks
+
+add_student("Aliya", 20, 85)
+add_student("Rahul", 22, 90)
+add_student("John", 21, 75)
+
+update_marks("Rahul", 95)
+"""
+    files = [{"path": "students.py", "language": "python", "content": user_code}]
+    scan_res = await scan_project_files(files)
+    assert scan_res["total_issues"] >= 1
+    assert any(i["rule_id"] == "BUG-PREMATURE-RETURN" for i in scan_res["issues"])
+
+    pipe_res = await run_autonomous_pipeline("proj-loop-return", "Loop Proj", files)
+    assert pipe_res["patches_count"] >= 1
+    top_patch = pipe_res["patches"][0]
+    assert "else:\n            return None" not in top_patch["patched_code"]
+    assert top_patch["post_patch_test_passed"] is True
+    exec_res = runner.execute_code("python", top_patch["patched_code"])
+    assert exec_res.exit_code == 0
