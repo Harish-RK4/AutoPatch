@@ -10,6 +10,7 @@ from typing import Literal
 @dataclass
 class CodeSymbol:
     """A declared programming language symbol (function, class, method)."""
+
     name: str
     kind: Literal["function", "method", "class", "import"]
     line_start: int
@@ -22,6 +23,7 @@ class CodeSymbol:
 @dataclass
 class CallGraphEdge:
     """A directed edge in the call graph representing caller invoking callee."""
+
     caller: str
     callee: str
     line: int
@@ -30,6 +32,7 @@ class CallGraphEdge:
 @dataclass
 class FileIndex:
     """Complete AST and call graph representation for an ingested file."""
+
     file_path: str
     language: str
     symbols: list[CodeSymbol] = field(default_factory=list)
@@ -54,8 +57,7 @@ class FileIndex:
                 for s in self.symbols
             ],
             "call_graph": [
-                {"caller": e.caller, "callee": e.callee, "line": e.line}
-                for e in self.call_graph
+                {"caller": e.caller, "callee": e.callee, "line": e.line} for e in self.call_graph
             ],
             "imports": self.imports,
             "loc": self.loc,

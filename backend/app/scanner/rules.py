@@ -12,10 +12,29 @@ from app.scanner.models import ScanIssue
 
 # Secret detection regex patterns
 SECRET_PATTERNS = [
-    (re.compile(r"""(?:api_key|apikey|secret|token)\s*=\s*['"]([a-zA-Z0-9_\-]{16,})['"]""", re.IGNORECASE), "CWE-798", "Hardcoded API Key or Secret Token"),
-    (re.compile(r"""(?:password|passwd|pwd)\s*=\s*['"]([^'"]{6,})['"]""", re.IGNORECASE), "CWE-259", "Hardcoded Password in Source"),
-    (re.compile(r"""(?:sk-[a-zA-Z0-9]{20,})""", re.IGNORECASE), "CWE-798", "Hardcoded OpenAI / Model Secret Key"),
-    (re.compile(r"""(?:ghp_[a-zA-Z0-9]{36,})""", re.IGNORECASE), "CWE-798", "Hardcoded GitHub Personal Access Token"),
+    (
+        re.compile(
+            r"""(?:api_key|apikey|secret|token)\s*=\s*['"]([a-zA-Z0-9_\-]{16,})['"]""",
+            re.IGNORECASE,
+        ),
+        "CWE-798",
+        "Hardcoded API Key or Secret Token",
+    ),
+    (
+        re.compile(r"""(?:password|passwd|pwd)\s*=\s*['"]([^'"]{6,})['"]""", re.IGNORECASE),
+        "CWE-259",
+        "Hardcoded Password in Source",
+    ),
+    (
+        re.compile(r"""(?:sk-[a-zA-Z0-9]{20,})""", re.IGNORECASE),
+        "CWE-798",
+        "Hardcoded OpenAI / Model Secret Key",
+    ),
+    (
+        re.compile(r"""(?:ghp_[a-zA-Z0-9]{36,})""", re.IGNORECASE),
+        "CWE-798",
+        "Hardcoded GitHub Personal Access Token",
+    ),
 ]
 
 
@@ -49,9 +68,19 @@ class PythonASTSecurityVisitor(ast.NodeVisitor):
             )
 
         # 2. Check for subprocess.Popen / run / call with shell=True
-        if isinstance(node.func, ast.Attribute) and node.func.attr in ("Popen", "run", "call", "check_call", "check_output"):
+        if isinstance(node.func, ast.Attribute) and node.func.attr in (
+            "Popen",
+            "run",
+            "call",
+            "check_call",
+            "check_output",
+        ):
             for keyword in node.keywords:
-                if keyword.arg == "shell" and isinstance(keyword.value, ast.Constant) and keyword.value.value is True:
+                if (
+                    keyword.arg == "shell"
+                    and isinstance(keyword.value, ast.Constant)
+                    and keyword.value.value is True
+                ):
                     line = node.lineno
                     snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
                     self.issues.append(
@@ -74,7 +103,11 @@ class PythonASTSecurityVisitor(ast.NodeVisitor):
 
     def visit_BinOp(self, node: ast.BinOp):
         # 3. Check for literal division by zero
-        if isinstance(node.op, ast.Div) and isinstance(node.right, ast.Constant) and node.right.value == 0:
+        if (
+            isinstance(node.op, ast.Div)
+            and isinstance(node.right, ast.Constant)
+            and node.right.value == 0
+        ):
             line = node.lineno
             snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
             self.issues.append(
@@ -100,20 +133,20 @@ class PythonASTSecurityVisitor(ast.NodeVisitor):
             line = node.lineno
             snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
             self.issues.append(
-                    ScanIssue(
-                        id=f"ISSUE-{uuid.uuid4().hex[:6].upper()}",
-                        file_path=self.file_path,
-                        line_number=line,
-                        column=node.col_offset,
-                        rule_id="BUG-SILENT-EXCEPT",
-                        severity="medium",
-                        category="correctness",
-                        message="Bare 'except: pass' silently swallows all exceptions, masking defects.",
-                        snippet=snippet,
-                        cwe_id="CWE-390",
-                        suggested_fix="Catch specific exception types and log or re-raise errors.",
-                    )
+                ScanIssue(
+                    id=f"ISSUE-{uuid.uuid4().hex[:6].upper()}",
+                    file_path=self.file_path,
+                    line_number=line,
+                    column=node.col_offset,
+                    rule_id="BUG-SILENT-EXCEPT",
+                    severity="medium",
+                    category="correctness",
+                    message="Bare 'except: pass' silently swallows all exceptions, masking defects.",
+                    snippet=snippet,
+                    cwe_id="CWE-390",
+                    suggested_fix="Catch specific exception types and log or re-raise errors.",
                 )
+            )
         self.generic_visit(node)
 
 

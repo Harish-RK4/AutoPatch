@@ -142,7 +142,9 @@ class LLMRouter:
                     res = await adapter.complete(request, model=model_name)
                 else:
                     res = await adapter.complete(request)
-                tokens_count = getattr(res, "total_tokens", 0) or getattr(res, "tokens_used", 0) or 200
+                tokens_count = (
+                    getattr(res, "total_tokens", 0) or getattr(res, "tokens_used", 0) or 200
+                )
                 self.rate_limiter.consume(provider_name, tokens=tokens_count)
                 self.cache.set(cache_key, res.content)
                 return res

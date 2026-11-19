@@ -15,6 +15,7 @@ class DetectionResult(NamedTuple):
     is_binary: bool
     confidence: float
 
+
 # Extension to language and category mapping
 EXTENSION_MAP: dict[str, tuple[str, str, bool]] = {
     # Code languages
@@ -36,7 +37,6 @@ EXTENSION_MAP: dict[str, tuple[str, str, bool]] = {
     ".sh": ("shell", "code", False),
     ".bash": ("shell", "code", False),
     ".sql": ("sql", "code", False),
-
     # Data formats
     ".json": ("json", "dataset", False),
     ".csv": ("csv", "dataset", False),
@@ -44,7 +44,6 @@ EXTENSION_MAP: dict[str, tuple[str, str, bool]] = {
     ".parquet": ("parquet", "dataset", False),
     ".sqlite": ("sqlite", "dataset", False),
     ".db": ("sqlite", "dataset", False),
-
     # Config & Markup
     ".yaml": ("yaml", "config", False),
     ".yml": ("yaml", "config", False),
@@ -80,7 +79,9 @@ def is_binary_content(data: bytes) -> bool:
     return len(non_text) / len(data[:1024]) > 0.30
 
 
-def detect_file_language(file_path: str | Path, content_sample: bytes | None = None) -> DetectionResult:
+def detect_file_language(
+    file_path: str | Path, content_sample: bytes | None = None
+) -> DetectionResult:
     """
     Detect language, category, and execution support from filename, manifests,
     shebang, and content sniffing.

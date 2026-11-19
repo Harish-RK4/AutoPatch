@@ -163,12 +163,16 @@ async def upload_archive(
     extracts files, performs polyglot detection, indexes AST symbols, and persists the project.
     """
     if not archive.filename or not archive.filename.lower().endswith(".zip"):
-        raise HTTPException(status_code=400, detail="Only .zip archives are supported for archive ingestion.")
+        raise HTTPException(
+            status_code=400, detail="Only .zip archives are supported for archive ingestion."
+        )
 
     content_bytes = await archive.read()
     temp_extract_dir = tempfile.mkdtemp(prefix="autopatch_extract_")
     try:
-        extracted_files = SafeArchiveIngester.validate_and_extract(content_bytes, Path(temp_extract_dir))
+        extracted_files = SafeArchiveIngester.validate_and_extract(
+            content_bytes, Path(temp_extract_dir)
+        )
     except ArchiveSecurityViolation as sec_err:
         raise HTTPException(status_code=400, detail=str(sec_err))
     except (OSError, RuntimeError) as err:
@@ -223,6 +227,7 @@ async def execute_pipeline(project_id: str):
     proj = next((p for p in USER_PROJECTS if p["id"] == project_id), None)
     if not proj and settings.DEMO_MODE:
         from app.demo.seed_data import DEMO_PROJECTS
+
         proj = next((p for p in DEMO_PROJECTS if p["id"] == project_id), None)
 
     if not proj:

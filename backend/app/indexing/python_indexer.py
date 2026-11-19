@@ -48,7 +48,9 @@ class PythonASTVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
     def visit_ClassDef(self, node: ast.ClassDef):
-        decorators = [ast.unparse(d) if hasattr(ast, "unparse") else str(d) for d in node.decorator_list]
+        decorators = [
+            ast.unparse(d) if hasattr(ast, "unparse") else str(d) for d in node.decorator_list
+        ]
         self.symbols.append(
             CodeSymbol(
                 name=node.name,
@@ -69,7 +71,9 @@ class PythonASTVisitor(ast.NodeVisitor):
 
     def _record_function(self, node: ast.FunctionDef | ast.AsyncFunctionDef, is_async: bool):
         params = [arg.arg for arg in node.args.args]
-        decorators = [ast.unparse(d) if hasattr(ast, "unparse") else str(d) for d in node.decorator_list]
+        decorators = [
+            ast.unparse(d) if hasattr(ast, "unparse") else str(d) for d in node.decorator_list
+        ]
         kind = "method" if self.current_function else "function"
 
         symbol = CodeSymbol(

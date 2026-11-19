@@ -11,6 +11,7 @@ from typing import Any, Literal
 @dataclass
 class BlastRadiusReport:
     """Quantitative risk and dependency impact report for a code modification."""
+
     target_file: str
     target_symbol: str | None
     lines_touched: int
@@ -73,12 +74,14 @@ def compute_blast_radius(
     Computes blast radius across the project's AST call graph and file indices.
     """
     target_index = next((idx for idx in project_indices if _get_path(idx) == target_file), None)
-    
+
     # 1. Identify which symbol in target_file contains the patch lines
     target_symbol_name: str | None = None
     if target_index:
         for symbol in _get_symbols(target_index):
-            s_start = symbol.line_start if hasattr(symbol, "line_start") else symbol.get("line_start", 0)
+            s_start = (
+                symbol.line_start if hasattr(symbol, "line_start") else symbol.get("line_start", 0)
+            )
             s_end = symbol.line_end if hasattr(symbol, "line_end") else symbol.get("line_end", 0)
             s_name = symbol.name if hasattr(symbol, "name") else symbol.get("name", "")
             if s_start <= line_start <= s_end:
@@ -125,7 +128,8 @@ def compute_blast_radius(
     try:
         orig_tree = ast.parse(original_code)
         orig_complexity = sum(
-            1 for n in ast.walk(orig_tree)
+            1
+            for n in ast.walk(orig_tree)
             if isinstance(n, (ast.If, ast.While, ast.For, ast.ExceptHandler, ast.With, ast.Assert))
         )
     except SyntaxError:
@@ -134,7 +138,8 @@ def compute_blast_radius(
     try:
         patched_tree = ast.parse(patched_code)
         patched_complexity = sum(
-            1 for n in ast.walk(patched_tree)
+            1
+            for n in ast.walk(patched_tree)
             if isinstance(n, (ast.If, ast.While, ast.For, ast.ExceptHandler, ast.With, ast.Assert))
         )
     except SyntaxError:
@@ -144,10 +149,10 @@ def compute_blast_radius(
 
     # 6. Quantitative Blast Score Calculation (0 - 100)
     score = (
-        min(30, lines_touched * 2) +
-        min(30, max(0, len(files_impacted) - 1) * 15) +
-        min(24, len(direct_callers) * 8) +
-        min(16, len(transitive_callers) * 4)
+        min(30, lines_touched * 2)
+        + min(30, max(0, len(files_impacted) - 1) * 15)
+        + min(24, len(direct_callers) * 8)
+        + min(16, len(transitive_callers) * 4)
     )
     score = max(5, min(100, score))
 
@@ -161,7 +166,9 @@ def compute_blast_radius(
     else:
         risk_level = "Critical"
 
-    caller_desc = f"{len(direct_callers)} caller(s)" if direct_callers else "isolated / module-level"
+    caller_desc = (
+        f"{len(direct_callers)} caller(s)" if direct_callers else "isolated / module-level"
+    )
     summary = (
         f"Touches {len(files_impacted)} file(s), {lines_touched} line(s), "
         f"{caller_desc} impacted. Risk Level: {risk_level} (Score: {score}/100)."

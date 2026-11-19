@@ -59,8 +59,8 @@ def _build_python_repro_script(issue: dict[str, Any], original_code: str) -> str
             "# Reproducer: scan for hardcoded secrets\n"
             f"source = '''{original_code}'''\n"
             "patterns = [\n"
-            "    r\"(?:api_key|secret|token)\\s*=\\s*['\\\"]\\w{16,}['\\\"]\",\n"
-            "    r\"(?:password|passwd)\\s*=\\s*['\\\"][^'\\\"]{6,}['\\\"]\",\n"
+            '    r"(?:api_key|secret|token)\\s*=\\s*[\'\\"]\\w{16,}[\'\\"]",\n'
+            '    r"(?:password|passwd)\\s*=\\s*[\'\\"][^\'\\"]{6,}[\'\\"]",\n'
             "]\n"
             "for p in patterns:\n"
             "    if re.search(p, source, re.I):\n"

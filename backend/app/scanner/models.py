@@ -10,6 +10,7 @@ from typing import Literal
 @dataclass
 class ScanIssue:
     """A detected bug, security vulnerability, or syntax error."""
+
     id: str
     file_path: str
     line_number: int

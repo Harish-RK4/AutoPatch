@@ -12,6 +12,7 @@ from typing import Any, Literal
 @dataclass
 class ExecutionResult:
     """Standardized result of a sandboxed execution."""
+
     exit_code: int
     stdout: str
     stderr: str

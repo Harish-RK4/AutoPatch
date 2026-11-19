@@ -47,9 +47,11 @@ async def scan_project_files(files: list[dict[str, Any]]) -> dict[str, Any]:
     # Generate autonomous root-cause summary using LLM router (Mock in P1, real in P3)
     explanation_summary = ""
     if serialized_issues:
-        prompt_text = (
-            f"Analyze {len(serialized_issues)} detected flaws: "
-            + ", ".join([f"{i['rule_id']} in {i['file_path']}:{i['line_number']}" for i in serialized_issues[:5]])
+        prompt_text = f"Analyze {len(serialized_issues)} detected flaws: " + ", ".join(
+            [
+                f"{i['rule_id']} in {i['file_path']}:{i['line_number']}"
+                for i in serialized_issues[:5]
+            ]
         )
         try:
             llm_response = await llm_router.complete(
@@ -60,7 +62,9 @@ async def scan_project_files(files: list[dict[str, Any]]) -> dict[str, Any]:
             )
             explanation_summary = llm_response.content
         except (RuntimeError, ValueError, KeyError):
-            explanation_summary = "Autonomous scanner identified defect signatures across active project files."
+            explanation_summary = (
+                "Autonomous scanner identified defect signatures across active project files."
+            )
 
     return {
         "total_issues": len(serialized_issues),

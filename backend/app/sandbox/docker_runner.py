@@ -142,6 +142,7 @@ class DockerSandboxRunner(SandboxRunner):
         """Execute source code in the Docker container."""
         # Delegates to run_command with temporary mount
         import tempfile
+
         with tempfile.TemporaryDirectory(prefix="autopatch_docker_ws_") as temp_dir:
             temp_path = Path(temp_dir)
             if language.lower() in ("python", "py"):

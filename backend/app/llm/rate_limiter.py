@@ -14,7 +14,7 @@ class ProviderQuota:
     rpm_limit: int
     tpm_limit: int
     requests: deque = field(default_factory=deque)  # timestamps of requests in the last 60s
-    tokens: deque = field(default_factory=deque)    # (timestamp, token_count) tuples
+    tokens: deque = field(default_factory=deque)  # (timestamp, token_count) tuples
 
 
 DEFAULT_LIMITS: dict[str, dict[str, int]] = {

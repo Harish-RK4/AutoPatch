@@ -35,10 +35,12 @@ class GeminiAdapter(BaseLLMAdapter):
         contents = []
         for msg in request.messages:
             role = "user" if msg.role in ("user", "system") else "model"
-            contents.append({
-                "role": role,
-                "parts": [{"text": msg.content}],
-            })
+            contents.append(
+                {
+                    "role": role,
+                    "parts": [{"text": msg.content}],
+                }
+            )
 
         payload = {
             "contents": contents,

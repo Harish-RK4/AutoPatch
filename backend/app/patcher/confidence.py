@@ -29,6 +29,7 @@ SEVERITY_WEIGHTS: dict[str, float] = {
 @dataclass
 class ConfidenceResult:
     """Composite confidence and priority scoring for a patch candidate."""
+
     candidate_id: str
     raw_confidence: float
     capped_confidence: float
@@ -79,9 +80,9 @@ def compute_confidence(
     if pre_patch_failed and post_patch_passed:
         sandbox_factor = 100.0  # Full dual verification
     elif post_patch_passed:
-        sandbox_factor = 60.0   # Passes but no repro
+        sandbox_factor = 60.0  # Passes but no repro
     elif pre_patch_failed:
-        sandbox_factor = 30.0   # Repro but patch doesn't pass
+        sandbox_factor = 30.0  # Repro but patch doesn't pass
 
     # Factor 3: Blast radius inverse (0-100)
     blast_factor = max(0.0, 100.0 - blast_score)
@@ -92,10 +93,7 @@ def compute_confidence(
 
     # Weighted composite
     raw_confidence = (
-        critic_factor * 0.40 +
-        sandbox_factor * 0.30 +
-        blast_factor * 0.15 +
-        severity_factor * 0.15
+        critic_factor * 0.40 + sandbox_factor * 0.30 + blast_factor * 0.15 + severity_factor * 0.15
     )
 
     # Apply verification ladder cap

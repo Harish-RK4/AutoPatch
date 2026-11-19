@@ -91,7 +91,9 @@ async def run_autonomous_pipeline(
     # Step 3, 4, 5: Process detected issues
     for issue in issues[:3]:  # Process top detected flaws
         file_path = issue["file_path"]
-        target_file = next((f for f in code_files if (f.get("path") or f.get("file_path")) == file_path), None)
+        target_file = next(
+            (f for f in code_files if (f.get("path") or f.get("file_path")) == file_path), None
+        )
         if not target_file:
             continue
 
@@ -102,11 +104,13 @@ async def run_autonomous_pipeline(
         # Step 3a: REPRODUCE (Confirm defect is real)
         repro_result = reproducer.reproduce(issue, language, original_code)
         total_sandbox_duration_ms += repro_result.get("duration_ms", 0.0)
-        reproduction_results.append({
-            "issue_id": issue["id"],
-            "rule_id": rule_id,
-            **repro_result,
-        })
+        reproduction_results.append(
+            {
+                "issue_id": issue["id"],
+                "rule_id": rule_id,
+                **repro_result,
+            }
+        )
 
         # Step 3b: EXPLAIN (Root Cause Analysis)
         explain_prompt = (
@@ -144,7 +148,11 @@ async def run_autonomous_pipeline(
                     symbols = idx.symbols if hasattr(idx, "symbols") else idx.get("symbols", [])
                     for sym in symbols:
                         s_name = sym.name if hasattr(sym, "name") else sym.get("name", "")
-                        s_start = sym.line_start if hasattr(sym, "line_start") else sym.get("line_start", 0)
+                        s_start = (
+                            sym.line_start
+                            if hasattr(sym, "line_start")
+                            else sym.get("line_start", 0)
+                        )
                         s_end = sym.line_end if hasattr(sym, "line_end") else sym.get("line_end", 0)
                         if s_start <= issue["line_number"] <= s_end:
                             target_symbol = s_name
@@ -179,7 +187,9 @@ async def run_autonomous_pipeline(
 
             # Determine verification tier
             if not pre_test_res.passed and post_test_res.passed:
-                verification_level: VerificationLevel = "V4" if repro_result.get("reproduced") else "V3"
+                verification_level: VerificationLevel = (
+                    "V4" if repro_result.get("reproduced") else "V3"
+                )
             elif post_test_res.passed:
                 verification_level = "V2"
             else:
@@ -317,7 +327,9 @@ def _synthesize_minimal_fix(code: str, issue: dict[str, Any], language: str) -> 
     elif rule_id == "BUG-ZERO-DIV":
         return code.replace("100 / 0", "100 / max(1, denominator)")
     elif rule_id == "SEC-HARDCODED-SECRET":
-        return code.replace(issue.get("snippet", ""), f"# Externalized: os.environ.get('{issue['rule_id']}')")
+        return code.replace(
+            issue.get("snippet", ""), f"# Externalized: os.environ.get('{issue['rule_id']}')"
+        )
     elif rule_id == "SYNTAX-ERR":
         return code.replace("+ *", "+")
 
@@ -325,7 +337,9 @@ def _synthesize_minimal_fix(code: str, issue: dict[str, Any], language: str) -> 
     lines = code.splitlines()
     target_idx = max(0, issue.get("line_number", 1) - 1)
     if language == "python":
-        guard = "    if not (0.0 <= marks <= total):\n        raise ValueError('Invalid score range')"
+        guard = (
+            "    if not (0.0 <= marks <= total):\n        raise ValueError('Invalid score range')"
+        )
         lines.insert(target_idx, guard)
     else:
         guard = "    if (marks < 0 || marks > total) throw new RangeError('Invalid score range');"
@@ -339,8 +353,7 @@ def _synthesize_defensive_guard(code: str, issue: dict[str, Any], language: str)
 
     if rule_id == "SEC-EVAL":
         return code.replace(
-            "eval(",
-            "# SECURITY: eval() replaced with safe parsing\nimport json\njson.loads("
+            "eval(", "# SECURITY: eval() replaced with safe parsing\nimport json\njson.loads("
         )
     elif rule_id == "SEC-SUBPROCESS-SHELL":
         # Replace shell=True with shell=False and add input validation
@@ -352,12 +365,12 @@ def _synthesize_defensive_guard(code: str, issue: dict[str, Any], language: str)
     elif rule_id == "BUG-ZERO-DIV":
         return code.replace(
             "100 / 0",
-            "100 / (denominator if denominator != 0 else 1)  # GUARD: zero-division prevented"
+            "100 / (denominator if denominator != 0 else 1)  # GUARD: zero-division prevented",
         )
     elif rule_id == "SEC-HARDCODED-SECRET":
         return code.replace(
             issue.get("snippet", ""),
-            f"import os\n# DEFENSIVE: secret externalized\n{issue.get('snippet', '').split('=')[0].strip()} = os.environ.get('{issue['rule_id']}', '')"
+            f"import os\n# DEFENSIVE: secret externalized\n{issue.get('snippet', '').split('=')[0].strip()} = os.environ.get('{issue['rule_id']}', '')",
         )
 
     # Generic defensive guard
@@ -379,20 +392,22 @@ def _synthesize_refactored_fix(code: str, issue: dict[str, Any], language: str) 
     if rule_id == "SEC-EVAL":
         return code.replace(
             "eval(",
-            "# REFACTORED: replaced eval with ast.literal_eval for safe expression parsing\nimport ast\nast.literal_eval("
+            "# REFACTORED: replaced eval with ast.literal_eval for safe expression parsing\nimport ast\nast.literal_eval(",
         )
     elif rule_id == "SEC-SUBPROCESS-SHELL":
         result = code.replace("shell=True", "shell=False")
         result = result.replace(
             "subprocess.",
-            "# REFACTORED: using subprocess with explicit args list\nimport shlex\nsubprocess."
+            "# REFACTORED: using subprocess with explicit args list\nimport shlex\nsubprocess.",
         )
         return result
     elif rule_id == "BUG-ZERO-DIV":
         lines = code.splitlines()
         for i, line in enumerate(lines):
             if "/ 0" in line:
-                lines[i] = "    # REFACTORED: safe division with explicit zero check\n    divisor = max(1, denominator)\n    result = 100 / divisor"
+                lines[i] = (
+                    "    # REFACTORED: safe division with explicit zero check\n    divisor = max(1, denominator)\n    result = 100 / divisor"
+                )
                 break
         return "\n".join(lines)
 

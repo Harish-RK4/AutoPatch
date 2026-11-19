@@ -17,11 +17,11 @@ class ArchiveSecurityViolation(RuntimeError):
 
 
 # Security guard limits
-MAX_ARCHIVE_UPLOAD_BYTES = 50 * 1024 * 1024       # 50 MB
+MAX_ARCHIVE_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
 MAX_UNCOMPRESSED_TOTAL_BYTES = 100 * 1024 * 1024  # 100 MB
-MAX_DECOMPRESSION_RATIO = 100.0                   # Max 100:1 compression ratio
-MAX_TOTAL_FILE_COUNT = 1000                       # Max 1,000 files per archive
-MAX_SINGLE_FILE_BYTES = 25 * 1024 * 1024          # 25 MB max per individual file
+MAX_DECOMPRESSION_RATIO = 100.0  # Max 100:1 compression ratio
+MAX_TOTAL_FILE_COUNT = 1000  # Max 1,000 files per archive
+MAX_SINGLE_FILE_BYTES = 25 * 1024 * 1024  # 25 MB max per individual file
 
 
 class SafeArchiveIngester:
@@ -119,15 +119,17 @@ class SafeArchiveIngester:
                 content_text = data.decode("utf-8", errors="replace")
 
             rel_path = str(dest_file.relative_to(target_dir)).replace("\\", "/")
-            extracted_files.append({
-                "path": rel_path,
-                "filename": dest_file.name,
-                "language": detection.language,
-                "category": detection.category,
-                "is_binary": is_bin,
-                "is_executable": detection.is_supported_for_execution,
-                "size_bytes": len(data),
-                "content": content_text if not is_bin else "[Binary File]",
-            })
+            extracted_files.append(
+                {
+                    "path": rel_path,
+                    "filename": dest_file.name,
+                    "language": detection.language,
+                    "category": detection.category,
+                    "is_binary": is_bin,
+                    "is_executable": detection.is_supported_for_execution,
+                    "size_bytes": len(data),
+                    "content": content_text if not is_bin else "[Binary File]",
+                }
+            )
 
         return extracted_files

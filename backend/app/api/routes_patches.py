@@ -44,14 +44,12 @@ async def list_patches(
 @router.get("/by-bug/{bug_id}")
 async def list_patches_for_bug(bug_id: str):
     """Returns all candidate patches for a specific bug, ranked by critic score."""
-    candidates = [
-        p.to_dict() for p in ACTIVE_PATCHES.values()
-        if p.bug_id == bug_id
-    ]
+    candidates = [p.to_dict() for p in ACTIVE_PATCHES.values() if p.bug_id == bug_id]
     # Sort by critic rank
     candidates.sort(key=lambda c: c.get("critic_rank", 999))
     if not candidates and settings.DEMO_MODE:
         from app.demo.seed_data import DEMO_PATCHES
+
         candidates = [p for p in DEMO_PATCHES if p.get("bug_id") == bug_id]
 
     return candidates

@@ -18,12 +18,13 @@ from app.indexing.blast_radius import BlastRadiusReport
 @dataclass
 class CriticVerdict:
     """Structured assessment of a patch candidate by the critic agent."""
+
     candidate_id: str
     correctness_score: float = 0.0  # 0-100
-    minimality_score: float = 0.0   # 0-100
-    safety_score: float = 0.0       # 0-100
+    minimality_score: float = 0.0  # 0-100
+    safety_score: float = 0.0  # 0-100
     side_effect_score: float = 0.0  # 0-100 (100 = no side effects)
-    composite_score: float = 0.0    # Weighted aggregate
+    composite_score: float = 0.0  # Weighted aggregate
     rank: int = 0
     flags: list[str] = field(default_factory=list)
     recommendation: str = "needs_review"  # "accept", "reject", "needs_review"
@@ -77,7 +78,14 @@ def _score_correctness(
         flags.append("Post-patch test did not pass")
 
     # Rule-specific correctness checks
-    if rule_id == "SEC-EVAL" and "literal_eval" in patched_code or rule_id == "SEC-SUBPROCESS-SHELL" and "shell=False" in patched_code or rule_id == "BUG-ZERO-DIV" and "/ 0" not in patched_code:
+    if (
+        rule_id == "SEC-EVAL"
+        and "literal_eval" in patched_code
+        or rule_id == "SEC-SUBPROCESS-SHELL"
+        and "shell=False" in patched_code
+        or rule_id == "BUG-ZERO-DIV"
+        and "/ 0" not in patched_code
+    ):
         score += 10.0
 
     # Syntax validation of patched code
@@ -181,12 +189,7 @@ def evaluate_candidate(
     all_flags.extend(se_flags)
 
     # Weighted composite: Correctness 40%, Safety 25%, Minimality 20%, Side-effects 15%
-    composite = (
-        correctness * 0.40 +
-        safety * 0.25 +
-        minimality * 0.20 +
-        side_effect * 0.15
-    )
+    composite = correctness * 0.40 + safety * 0.25 + minimality * 0.20 + side_effect * 0.15
 
     # Determine recommendation
     if composite >= 80.0 and not any("syntax error" in f.lower() for f in all_flags):

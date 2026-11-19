@@ -12,6 +12,7 @@ VerificationLevel = Literal["V0", "V1", "V2", "V3", "V4"]
 @dataclass
 class PatchCandidate:
     """A synthesized patch candidate with unified diff and sandbox verification evidence."""
+
     id: str
     bug_id: str
     project_id: str
