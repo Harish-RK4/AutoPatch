@@ -4,6 +4,31 @@ All notable changes to AutoPatch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Phase P8 - Product Features Complete] - 2026-11-19
+
+### Added
+- **Repository Memory & Decision Learning Engine (`app.memory.repo_memory`)**:
+  - Persistent repository memory recording reviewer actions (`accept`, `reject`, `needs_review`), applied strategies, and feedback rationales.
+  - Analytics endpoint (`GET /patches/memory/{project_id}`) computing project-level acceptance rates, preferred repair strategies, and historical critic hints.
+- **Security Mode & OSV.dev Dependency Vulnerability Scanner (`app.security.scanner`)**:
+  - Standardized CWE and OWASP Top 10 mappings across 8 primary flaw categories (CWE-20, CWE-78, CWE-89, CWE-369, CWE-476, CWE-798, CWE-95, CWE-699).
+  - Manifest parser for `requirements.txt` and live asynchronous queries to the open OSV.dev vulnerability database (`POST /api/v1/security/scan-manifest`).
+- **Crash-to-Fix Runtime Trace Intake (`POST /api/v1/intake/crash`)**:
+  - Ingests raw multiline stack traces and structured Sentry error events.
+  - Extracts crash file, line number, exception class, and error payload, feeding directly into the explanation and patch pipeline.
+- **GitHub PR Bot & Webhook Integration (`POST /api/v1/webhook/github`)**:
+  - Ingests GitHub `pull_request` and `ping` webhook payloads.
+  - Generates automated markdown verification review comments featuring Verification Ladder badges, dual sandbox execution results, and blast-radius summaries.
+- **One-Click Patch Rollback & Inverted Diff Synthesis (`POST /api/v1/patches/{id}/rollback`)**:
+  - Synthesizes mathematical inverse unified diffs and dedicated revert branches (`autopatch/revert-{patch_id}`).
+  - Records rollback events in repository memory for continuous model guidance.
+- **System-Wide Engineering Analytics Telemetry (`GET /api/v1/analytics`)**:
+  - Dynamic telemetry tracking total defects, patches generated, verification ladder distributions (V0-V4), average confidence, auto-fix rate, and estimated engineering hours saved.
+- **Comprehensive Verification**:
+  - Added `backend/tests/unit/test_product_features.py` testing memory, security classification, crash intake, webhooks, rollback, and analytics.
+  - 110 backend pytest tests passing with 100% clean Ruff linting.
+  - 0 TypeScript compilation errors.
+
 ## [Phase P7 - FCM Push Notifications Complete] - 2026-11-19
 
 ### Added
