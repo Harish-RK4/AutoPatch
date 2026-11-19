@@ -1,0 +1,24 @@
+{
+  "name": "autopatch-root",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AutoPatch - Autonomous Software Bug Detection and Repair System",
+  "scripts": {
+    "check:env": "node scripts/check-env.js",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 8000",
+    "test:frontend": "cd frontend && npm test",
+    "test:backend": "cd backend && pytest -v",
+    "test": "npm run check:env && npm run test:backend && npm run test:frontend",
+    "lint": "cd frontend && npm run lint",
+    "smoke": "node scripts/smoke-test.js"
+  },
+  "keywords": [
+    "autonomous-debugging",
+    "program-repair",
+    "verification-ladder",
+    "sandboxed-testing"
+  ],
+  "author": "Harish-RK4 <harishrk457@gmail.com>",
+  "license": "Apache-2.0"
+}
