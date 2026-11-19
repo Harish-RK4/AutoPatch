@@ -105,18 +105,34 @@ export class DemoAuthProvider implements IAuthProvider {
   }
 }
 
+let _globalSupabaseClient: SupabaseClient | null = null;
+
+function getSupabaseClient(): SupabaseClient | null {
+  if (typeof window === "undefined") {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (url && anonKey) {
+      return createClient(url, anonKey);
+    }
+    return null;
+  }
+
+  if (!_globalSupabaseClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (url && anonKey) {
+      _globalSupabaseClient = createClient(url, anonKey);
+    }
+  }
+  return _globalSupabaseClient;
+}
+
 /**
  * Supabase Auth Provider (Production Live Cutover)
  */
 export class SupabaseAuthProvider implements IAuthProvider {
-  private supabase: SupabaseClient | null = null;
-
-  constructor() {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-    if (url && anonKey) {
-      this.supabase = createClient(url, anonKey);
-    }
+  private get supabase(): SupabaseClient | null {
+    return getSupabaseClient();
   }
 
   getMode(): "supabase" {
@@ -162,17 +178,65 @@ export class SupabaseAuthProvider implements IAuthProvider {
       provider,
       options: {
         redirectTo: `${origin}/auth/callback`,
+        skipBrowserRedirect: true,
       },
     });
+
     if (error) {
       return { user: null, error: error.message };
     }
+
+    if (data?.url) {
+      try {
+        // Pre-validate whether provider is enabled in Supabase to avoid raw 400 JSON browser error
+        const probe = await fetch(data.url, { method: "GET", redirect: "manual" });
+        if (probe.status === 400) {
+          const body = await probe.json().catch(() => null);
+          if (body?.msg?.includes("not enabled") || body?.error_code === "validation_failed") {
+            return {
+              user: null,
+              error: `PROVIDER_DISABLED:${provider}`,
+            };
+          }
+          if (body?.msg) {
+            return { user: null, error: body.msg };
+          }
+        }
+      } catch (probeErr) {
+        // In case of CORS restriction, fallback to direct redirect
+      }
+
+      if (typeof window !== "undefined") {
+        window.location.assign(data.url);
+      }
+    }
+
     return { user: null, error: null };
   }
 
   async signUp(fullName: string, email: string, pass: string): Promise<AuthResponse> {
     if (!this.supabase) {
       return { user: null, error: "Supabase credentials missing in .env." };
+    }
+
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    try {
+      // Attempt server-side registration using admin service role to auto-confirm email
+      const res = await fetch(`${apiBase}/api/v1/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pass, full_name: fullName }),
+      });
+      if (res.ok) {
+        return await this.signIn(email, pass);
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        if (errJson.detail) {
+          return { user: null, error: errJson.detail };
+        }
+      }
+    } catch (e) {
+      // Fallback to client SDK
     }
 
     const { data, error } = await this.supabase.auth.signUp({
@@ -187,15 +251,7 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return { user: null, error: error?.message || "Sign up failed." };
     }
 
-    const user: AuthUser = {
-      id: data.user.id,
-      email: data.user.email || email,
-      fullName,
-      role: "developer",
-      isDemo: false,
-    };
-
-    return { user, error: null };
+    return await this.signIn(email, pass);
   }
 
   async signOut(): Promise<void> {
@@ -252,6 +308,9 @@ export class SupabaseAuthProvider implements IAuthProvider {
   }
 }
 
+let _demoAuthProviderInstance: DemoAuthProvider | null = null;
+let _supabaseAuthProviderInstance: SupabaseAuthProvider | null = null;
+
 /**
  * Singleton AuthProvider factory
  * Controlled entirely by NEXT_PUBLIC_AUTH_MODE
@@ -259,7 +318,13 @@ export class SupabaseAuthProvider implements IAuthProvider {
 export function getAuthProvider(): IAuthProvider {
   const mode = process.env.NEXT_PUBLIC_AUTH_MODE;
   if (mode === "supabase") {
-    return new SupabaseAuthProvider();
+    if (!_supabaseAuthProviderInstance) {
+      _supabaseAuthProviderInstance = new SupabaseAuthProvider();
+    }
+    return _supabaseAuthProviderInstance;
   }
-  return new DemoAuthProvider();
+  if (!_demoAuthProviderInstance) {
+    _demoAuthProviderInstance = new DemoAuthProvider();
+  }
+  return _demoAuthProviderInstance;
 }

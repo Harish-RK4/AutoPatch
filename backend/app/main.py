@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes_analytics import router as analytics_router
+from app.api.routes_auth import router as auth_router
 from app.api.routes_bugs import router as bugs_router
 from app.api.routes_intake import router as intake_router
 from app.api.routes_notifications import device_router as devices_router
@@ -56,6 +57,7 @@ app.add_middleware(
 )
 
 # Register API v1 Routers
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(bugs_router, prefix="/api/v1")
 app.include_router(patches_router, prefix="/api/v1")
