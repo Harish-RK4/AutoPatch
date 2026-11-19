@@ -1,5 +1,8 @@
 # Environment variables & secrets (NEVER commit these)
 .autopatch_data/
+.agents/
+.claude/
+agent/
 .env
 .env.*
 !.env.example
