@@ -1,42 +1,54 @@
 /**
  * Google Authentication API Route
- * Handles Google Sign-In by authenticating users via Supabase Admin API,
+ * Handles Google Sign-In helper functions by authenticating users via Supabase Admin API,
  * creating/confirming their account and issuing a verified OTP session token.
- * This provides frictionless, 100% reliable Google Auth with zero rate limits or provider blocks.
  */
 
 import { NextRequest, NextResponse } from "next/server";
 
 const SUPABASE_URL = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function adminHeaders() {
-  const key = SERVICE_KEY || ANON_KEY;
   return {
-    apikey: key,
-    Authorization: `Bearer ${key}`,
+    apikey: SERVICE_KEY,
+    Authorization: `Bearer ${SERVICE_KEY}`,
     "Content-Type": "application/json",
   };
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { email, full_name, avatar_url } = await req.json();
-
-    if (!email || typeof email !== "string" || !email.includes("@")) {
-      return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
-    }
-
     if (!SUPABASE_URL || !SERVICE_KEY) {
       return NextResponse.json(
-        { error: "Supabase service role credentials not configured." },
+        { error: "Supabase service role credentials not configured on server." },
         { status: 500 }
       );
     }
 
+    const body = await req.json().catch(() => null);
+    if (!body) {
+      return NextResponse.json({ error: "Invalid request payload." }, { status: 400 });
+    }
+
+    const { email, full_name, avatar_url } = body;
+
+    if (!email || typeof email !== "string") {
+      return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
+    }
+
     const cleanEmail = email.trim().toLowerCase();
-    const displayName = full_name || cleanEmail.split("@")[0];
+    if (!EMAIL_REGEX.test(cleanEmail) || cleanEmail.length > 254) {
+      return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
+    }
+
+    const displayName = typeof full_name === "string"
+      ? full_name.trim().replace(/[<>]/g, "").slice(0, 100)
+      : cleanEmail.split("@")[0];
+
+    const cleanAvatar = typeof avatar_url === "string" ? avatar_url.slice(0, 500) : "";
 
     // Step 1: Ensure user exists in Supabase
     const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
@@ -47,7 +59,7 @@ export async function POST(req: NextRequest) {
         email_confirm: true,
         user_metadata: {
           full_name: displayName,
-          avatar_url: avatar_url || "",
+          avatar_url: cleanAvatar,
           provider: "google",
           role: "developer",
         },
@@ -62,7 +74,7 @@ export async function POST(req: NextRequest) {
     if (!createRes.ok && createRes.status !== 422) {
       const err = await createRes.json().catch(() => ({}));
       return NextResponse.json(
-        { error: err.msg || "Failed to initialize account in Supabase." },
+        { error: err.msg || err.error_description || "Failed to initialize account in Supabase." },
         { status: createRes.status }
       );
     }
@@ -95,12 +107,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const isDev = process.env.NODE_ENV !== "production";
+
     return NextResponse.json({
       status: "success",
       email: cleanEmail,
-      otp,
       user_id: linkData.id,
       full_name: displayName,
+      ...(isDev ? { otp } : {}),
     });
   } catch (err: any) {
     return NextResponse.json(

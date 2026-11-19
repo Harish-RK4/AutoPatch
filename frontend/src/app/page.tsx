@@ -23,6 +23,16 @@ export default function LandingPage() {
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
+    // If arriving from an email link or OAuth redirect (code, access_token, or error)
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      const search = window.location.search;
+      if (hash.includes("access_token") || search.includes("code=") || search.includes("error=")) {
+        window.location.replace("/auth/callback" + search + hash);
+        return;
+      }
+    }
+
     getAuthProvider().getSession().then(setCurrentUser);
   }, []);
 

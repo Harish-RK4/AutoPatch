@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -19,7 +19,6 @@ import {
   RotateCcw, 
   Check, 
   RefreshCw,
-  CheckCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { getAuthProvider } from "@/lib/authProvider";
@@ -32,8 +31,12 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
   const initialTab = searchParams.get("tab") === "signup" ? "signup" : searchParams.get("tab") === "otp" ? "otp" : "signin";
+  const initialError = searchParams.get("error");
 
   const authProvider = getAuthProvider();
+
+  // Duplicate request prevention guard
+  const requestInFlight = useRef(false);
 
   const [tab, setTab] = useState<"signin" | "otp" | "signup">(initialTab);
   const [email, setEmail] = useState("");
@@ -42,15 +45,22 @@ function LoginForm() {
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(
+    initialError === "oauth_failed"
+      ? "Google sign-in could not be completed. Please try again."
+      : initialError || null
+  );
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Success notifications
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // OTP Flow States
   const [otpStep, setOtpStep] = useState<"request" | "verify">("request");
   const [otpEmail, setOtpEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [sentToInbox, setSentToInbox] = useState(false);
-  const [generatedOtpHint, setGeneratedOtpHint] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // Password criteria for Registration
@@ -61,6 +71,15 @@ function LoginForm() {
   const passwordCriteriaCount = [hasMinLength, hasUpperCase, hasLowerCase, hasNumberOrSymbol].filter(Boolean).length;
   const isPasswordValid = passwordCriteriaCount === 4;
   const isConfirmValid = Boolean(confirmPassword) && password === confirmPassword;
+
+  // Check if user is already authenticated
+  useEffect(() => {
+    authProvider.getSession().then((session) => {
+      if (session) {
+        window.location.replace(redirectUrl);
+      }
+    });
+  }, [authProvider, redirectUrl]);
 
   // Resend OTP Countdown
   useEffect(() => {
@@ -73,9 +92,12 @@ function LoginForm() {
   // 1. Password Sign In
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (requestInFlight.current) return;
     setError(null);
+    setSuccessMessage(null);
 
-    if (!EMAIL_REGEX.test(email)) {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!EMAIL_REGEX.test(cleanEmail)) {
       setError("Please enter a valid email address.");
       return;
     }
@@ -84,12 +106,14 @@ function LoginForm() {
       return;
     }
 
+    requestInFlight.current = true;
     setLoading(true);
 
     try {
-      const res = await authProvider.signIn(email, password);
+      const res = await authProvider.signIn(cleanEmail, password);
       if (res.user) {
-        router.push(redirectUrl);
+        setSuccessMessage("Authenticated successfully! Redirecting to workspace...");
+        window.location.replace(redirectUrl);
       } else {
         setError(res.error || "Invalid email or password. Please verify your credentials and try again.");
       }
@@ -97,19 +121,25 @@ function LoginForm() {
       setError(err?.message || "Sign in failed. Please try again.");
     } finally {
       setLoading(false);
+      requestInFlight.current = false;
     }
   };
 
   // 2. Real Registration in Supabase (with strict password criteria)
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (requestInFlight.current) return;
     setError(null);
+    setSuccessMessage(null);
 
-    if (!fullName.trim()) {
+    const cleanName = fullName.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName) {
       setError("Please enter your full name.");
       return;
     }
-    if (!EMAIL_REGEX.test(email)) {
+    if (!EMAIL_REGEX.test(cleanEmail)) {
       setError("Please enter a valid email address.");
       return;
     }
@@ -122,12 +152,14 @@ function LoginForm() {
       return;
     }
 
+    requestInFlight.current = true;
     setLoading(true);
 
     try {
-      const res = await authProvider.signUp(fullName, email, password);
+      const res = await authProvider.signUp(cleanName, cleanEmail, password);
       if (res.user) {
-        router.push(redirectUrl);
+        setSuccessMessage("Account created successfully! Entering your workspace...");
+        window.location.replace(redirectUrl);
       } else {
         setError(res.error || "Registration failed. Please check your information and try again.");
       }
@@ -135,108 +167,121 @@ function LoginForm() {
       setError(err?.message || "Sign up failed. Please try again.");
     } finally {
       setLoading(false);
+      requestInFlight.current = false;
     }
   };
 
   // 3. Real Supabase OTP - Send Code
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (requestInFlight.current) return;
     setError(null);
+    setSuccessMessage(null);
 
-    if (!EMAIL_REGEX.test(otpEmail)) {
+    const cleanEmail = otpEmail.trim().toLowerCase();
+    if (!EMAIL_REGEX.test(cleanEmail)) {
       setError("Please enter a valid email address.");
       return;
     }
 
+    requestInFlight.current = true;
     setLoading(true);
     try {
-      if (authProvider.sendOtp) {
-        const res = await authProvider.sendOtp(otpEmail);
-        if (res.success) {
-          setOtpStep("verify");
-          setResendCooldown(60);
-          setSentToInbox(Boolean(res.sentToEmail));
-          if (res.otp) {
-            setGeneratedOtpHint(res.otp);
-          }
-        } else {
-          setError(res.error || "Failed to send verification code. Please try again.");
-        }
+      const res = await authProvider.sendOtp(cleanEmail);
+      if (res.success) {
+        setOtpStep("verify");
+        setResendCooldown(60);
+        setSentToInbox(Boolean(res.sentToEmail));
+      } else {
+        setError(res.error || "Failed to send verification code. Please try again.");
       }
     } catch (err: any) {
       setError(err?.message || "Failed to send verification code.");
     } finally {
       setLoading(false);
+      requestInFlight.current = false;
     }
   };
 
   // 4. Real Supabase OTP - Verify Code
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (requestInFlight.current) return;
     setError(null);
+    setSuccessMessage(null);
 
-    if (!otpCode.trim()) {
+    const cleanEmail = otpEmail.trim().toLowerCase();
+    const cleanCode = otpCode.trim();
+
+    if (!cleanCode) {
       setError("Please enter the verification code.");
       return;
     }
 
+    requestInFlight.current = true;
     setLoading(true);
     try {
-      if (authProvider.verifyOtp) {
-        const res = await authProvider.verifyOtp(otpEmail, otpCode);
-        if (res.user) {
-          router.push(redirectUrl);
-        } else {
-          setError(res.error || "Invalid or expired verification code.");
-        }
+      const res = await authProvider.verifyOtp(cleanEmail, cleanCode);
+      if (res.user) {
+        setSuccessMessage("Code verified! Redirecting to workspace...");
+        window.location.replace(redirectUrl);
+      } else {
+        setError(res.error || "Invalid or expired verification code.");
       }
     } catch (err: any) {
       setError(err?.message || "Verification failed. Please try again.");
     } finally {
       setLoading(false);
+      requestInFlight.current = false;
     }
   };
 
   // 5. OAuth: Continue with Google
   const handleGoogleOAuth = async () => {
+    if (requestInFlight.current) return;
     setError(null);
+    requestInFlight.current = true;
     setLoading(true);
     try {
       const res = await authProvider.signInWithOAuth("google");
       if (res.error) {
         setError(res.error);
-      } else if (res.user) {
-        router.push(redirectUrl);
+        setLoading(false);
+        requestInFlight.current = false;
       }
     } catch (err: any) {
       setError(err?.message || "Failed to initiate Google sign in.");
-    } finally {
       setLoading(false);
+      requestInFlight.current = false;
     }
   };
 
   // 6. OAuth: Continue with GitHub
   const handleGitHubOAuth = async () => {
+    if (requestInFlight.current) return;
     setError(null);
+    requestInFlight.current = true;
     setLoading(true);
     try {
       const res = await authProvider.signInWithOAuth("github");
       if (res.error) {
         setError(res.error);
-      } else if (res.user) {
-        router.push(redirectUrl);
+        setLoading(false);
+        requestInFlight.current = false;
       }
     } catch (err: any) {
       setError(err?.message || "Failed to initiate GitHub sign in.");
-    } finally {
       setLoading(false);
+      requestInFlight.current = false;
     }
   };
+
+  const passwordCriteriaId = "password-criteria-checklist";
 
   return (
     <div className="min-h-[90vh] flex items-center justify-center p-4">
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 bg-white dark:bg-[#121214] border border-[#E4E4E7] dark:border-[#27272A] rounded-2xl overflow-hidden shadow-2xl">
-        {/* Left: Interactive Preview & Technical Value */}
+        {/* Left: Technical Value & Value Proposition */}
         <div className="hidden md:flex flex-col justify-between p-8 lg:p-10 bg-[#FAFAFA] dark:bg-[#18181B] border-r border-[#E4E4E7] dark:border-[#27272A]">
           <div>
             <div className="flex items-center gap-2.5 mb-8">
@@ -319,7 +364,7 @@ function LoginForm() {
                 {tab === "signin" 
                   ? "Enter your credentials to access your autonomous repair workspace." 
                   : tab === "otp"
-                  ? "Receive a verification code to sign in instantly without a password."
+                  ? "Receive a verification code to sign in securely without a password."
                   : "Start diagnosing and repairing software defects in seconds."}
               </p>
             </div>
@@ -332,13 +377,22 @@ function LoginForm() {
                 disabled={loading}
                 className="w-full flex items-center justify-center py-2.5 px-4 rounded-xl border border-[#E4E4E7] dark:border-[#27272A] bg-white dark:bg-[#18181B] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] text-[#09090B] dark:text-[#FAFAFA] text-xs font-semibold shadow-sm transition-all duration-150 disabled:opacity-60"
               >
-                <svg className="w-4 h-4 mr-2.5 flex-shrink-0" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
-                </svg>
-                <span>Continue with Google</span>
+                {loading && requestInFlight.current ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#0F766E] dark:text-[#14B8A6]" />
+                    Connecting with Google...
+                  </span>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 mr-2.5 flex-shrink-0" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                    </svg>
+                    <span>Continue with Google</span>
+                  </>
+                )}
               </button>
 
               <button
@@ -370,7 +424,7 @@ function LoginForm() {
             <div className="flex items-center p-1 bg-[#F4F4F5] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] rounded-xl mb-5">
               <button
                 type="button"
-                onClick={() => { setTab("signin"); setError(null); }}
+                onClick={() => { setTab("signin"); setError(null); setSuccessMessage(null); }}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                   tab === "signin"
                     ? "bg-white dark:bg-[#27272A] text-[#09090B] dark:text-[#FAFAFA] shadow-sm"
@@ -381,7 +435,7 @@ function LoginForm() {
               </button>
               <button
                 type="button"
-                onClick={() => { setTab("otp"); setError(null); setOtpStep("request"); setGeneratedOtpHint(null); setSentToInbox(false); }}
+                onClick={() => { setTab("otp"); setError(null); setSuccessMessage(null); setOtpStep("request"); setSentToInbox(false); }}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                   tab === "otp"
                     ? "bg-white dark:bg-[#27272A] text-[#09090B] dark:text-[#FAFAFA] shadow-sm"
@@ -392,7 +446,7 @@ function LoginForm() {
               </button>
               <button
                 type="button"
-                onClick={() => { setTab("signup"); setError(null); }}
+                onClick={() => { setTab("signup"); setError(null); setSuccessMessage(null); }}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                   tab === "signup"
                     ? "bg-white dark:bg-[#27272A] text-[#09090B] dark:text-[#FAFAFA] shadow-sm"
@@ -402,6 +456,14 @@ function LoginForm() {
                 Register
               </button>
             </div>
+
+            {/* Success Message Banner */}
+            {successMessage && (
+              <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-700 dark:text-emerald-400 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-emerald-500" />
+                <span className="leading-relaxed font-medium">{successMessage}</span>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -426,7 +488,9 @@ function LoginForm() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@company.com"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                      maxLength={254}
+                      disabled={loading}
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6] disabled:opacity-60"
                       required
                     />
                   </div>
@@ -452,7 +516,9 @@ function LoginForm() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-9 pr-9 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                      maxLength={128}
+                      disabled={loading}
+                      className="w-full pl-9 pr-9 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6] disabled:opacity-60"
                       required
                     />
                     <button
@@ -463,6 +529,20 @@ function LoginForm() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+                </div>
+
+                {/* Remember Me Checkbox */}
+                <div className="flex items-center gap-2">
+                  <input
+                    id="remember-me"
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="w-3.5 h-3.5 rounded border-[#E4E4E7] dark:border-[#27272A] text-[#0F766E] focus:ring-[#0F766E] dark:focus:ring-[#14B8A6] cursor-pointer"
+                  />
+                  <label htmlFor="remember-me" className="text-[11px] text-[#71717A] cursor-pointer select-none">
+                    Remember me on this device
+                  </label>
                 </div>
 
                 <div className="pt-2">
@@ -503,7 +583,9 @@ function LoginForm() {
                           value={otpEmail}
                           onChange={(e) => setOtpEmail(e.target.value)}
                           placeholder="name@company.com"
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                          maxLength={254}
+                          disabled={loading}
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6] disabled:opacity-60"
                           required
                         />
                       </div>
@@ -533,33 +615,16 @@ function LoginForm() {
                   </form>
                 ) : (
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
-                    {sentToInbox && (
-                      <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-xs text-blue-700 dark:text-blue-400">
-                        <div className="flex items-center gap-1.5 font-semibold mb-1">
-                          <Mail className="w-4 h-4 text-blue-500" />
-                          <span>Code Sent Directly to Your Inbox</span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed">
-                          A 6-digit verification code has been dispatched to <strong>{otpEmail}</strong> via Supabase Auth. Please check your inbox (and spam/junk folder) and enter it below.
-                        </p>
+                    {/* Code Sent Notification Banner */}
+                    <div className="p-3.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-xs text-blue-700 dark:text-blue-400">
+                      <div className="flex items-center gap-1.5 font-semibold mb-1">
+                        <Mail className="w-4 h-4 text-blue-500" />
+                        <span>Verification Code Sent to {otpEmail}</span>
                       </div>
-                    )}
-
-                    {generatedOtpHint && !sentToInbox && (
-                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-800 dark:text-amber-300">
-                        <div className="flex items-center gap-1.5 font-semibold mb-1">
-                          <Sparkles className="w-4 h-4 text-amber-500" />
-                          <span>Supabase Email Delivery Fallback</span>
-                        </div>
-                        <p className="text-[11px] leading-relaxed mb-1.5">
-                          Supabase default SMTP hourly email quota was reached on the free tier. Your verified Supabase OTP code for <strong>{otpEmail}</strong> is:
-                        </p>
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-[#18181B] border border-amber-500/30 font-mono">
-                          <span className="text-xs text-[#71717A]">One-Time Code:</span>
-                          <span className="text-sm font-bold tracking-widest text-[#09090B] dark:text-[#FAFAFA]">{generatedOtpHint}</span>
-                        </div>
-                      </div>
-                    )}
+                      <p className="text-[11px] leading-relaxed">
+                        Supabase dispatched your 6-digit verification code to <strong>{otpEmail}</strong>. Please check your inbox (including Spam/Junk) and enter the code below.
+                      </p>
+                    </div>
 
                     <div>
                       <div className="flex items-center justify-between mb-1.5">
@@ -579,7 +644,7 @@ function LoginForm() {
                           <span className="text-[#A1A1AA] text-[10px]">·</span>
                           <button
                             type="button"
-                            onClick={() => { setOtpStep("request"); setGeneratedOtpHint(null); }}
+                            onClick={() => { setOtpStep("request"); }}
                             className="text-[11px] text-[#71717A] hover:underline flex items-center gap-1"
                           >
                             <RotateCcw className="w-3 h-3" /> Change email
@@ -594,7 +659,9 @@ function LoginForm() {
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
                           placeholder="Enter 6-digit code"
-                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] font-mono tracking-widest text-center focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                          maxLength={6}
+                          disabled={loading}
+                          className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] font-mono tracking-widest text-center focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6] disabled:opacity-60"
                           required
                           autoFocus
                         />
@@ -639,7 +706,9 @@ function LoginForm() {
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
                       placeholder="Harish R K"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                      maxLength={100}
+                      disabled={loading}
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6] disabled:opacity-60"
                       required
                     />
                   </div>
@@ -657,7 +726,9 @@ function LoginForm() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="name@company.com"
-                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                      maxLength={254}
+                      disabled={loading}
+                      className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6] disabled:opacity-60"
                       required
                     />
                   </div>
@@ -684,7 +755,10 @@ function LoginForm() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="Enter strong password"
-                      className="w-full pl-9 pr-9 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                      maxLength={128}
+                      aria-describedby={passwordCriteriaId}
+                      disabled={loading}
+                      className="w-full pl-9 pr-9 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6] disabled:opacity-60"
                       required
                     />
                     <button
@@ -712,7 +786,7 @@ function LoginForm() {
                   )}
 
                   {/* Password Criteria Checklist */}
-                  <div className="mt-2.5 p-3 rounded-xl bg-[#F4F4F5]/60 dark:bg-[#18181B]/60 border border-[#E4E4E7] dark:border-[#27272A] space-y-1.5 text-[11px]">
+                  <div id={passwordCriteriaId} className="mt-2.5 p-3 rounded-xl bg-[#F4F4F5]/60 dark:bg-[#18181B]/60 border border-[#E4E4E7] dark:border-[#27272A] space-y-1.5 text-[11px]">
                     <div className="text-[10px] font-semibold text-[#71717A] uppercase tracking-wider mb-1">
                       Password Requirements:
                     </div>
@@ -760,11 +834,14 @@ function LoginForm() {
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm your password"
+                      maxLength={128}
+                      aria-describedby={passwordCriteriaId}
+                      disabled={loading}
                       className={`w-full pl-9 pr-9 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border ${
                         confirmPassword && !isConfirmValid
                           ? "border-red-500/50 focus:ring-red-500"
                           : "border-[#E4E4E7] dark:border-[#27272A] focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
-                      } text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1`}
+                      } text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 disabled:opacity-60`}
                       required
                     />
                     <button

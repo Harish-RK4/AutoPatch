@@ -16,8 +16,18 @@ CREATE TABLE IF NOT EXISTS public.profiles (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Create index on email and provider for fast lookups
-CREATE INDEX IF NOT EXISTS idx_profiles_email ON public.profiles(email);
+-- 2. UNIQUE constraint on email (also serves as an index)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'profiles_email_unique' AND conrelid = 'public.profiles'::regclass
+    ) THEN
+        ALTER TABLE public.profiles ADD CONSTRAINT profiles_email_unique UNIQUE (email);
+    END IF;
+END $$;
+
+-- 3. Additional index on provider for fast lookups
 CREATE INDEX IF NOT EXISTS idx_profiles_provider ON public.profiles(auth_provider);
 
 -- 3. Enable Row Level Security (RLS)
