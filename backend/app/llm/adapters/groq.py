@@ -40,7 +40,7 @@ class GroqAdapter(BaseLLMAdapter):
             "temperature": request.temperature,
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=8.0) as client:
             resp = await client.post(url, headers=headers, json=payload)
 
         if resp.status_code != 200:

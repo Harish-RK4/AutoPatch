@@ -34,7 +34,7 @@ class OllamaAdapter(BaseLLMAdapter):
             },
         }
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=5.0) as client:
             resp = await client.post(url, json=payload)
 
         if resp.status_code != 200:
