@@ -4,6 +4,32 @@ All notable changes to AutoPatch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Phase P3 - Free LLM Router Complete] - 2026-11-19
+
+### Added
+- **Multi-Provider LLM Adapters (`app.llm.adapters`)**:
+  - `GeminiAdapter`: Live Google Generative Language API adapter with native `contents` structure, system prompts, temperature controls, and error mapping. Verified live against `models/gemini-3.5-flash-lite`.
+  - `GroqAdapter`: Live OpenAI-compatible Groq API client with sub-second inference. Verified live against `qwen/qwen3.8-27b`.
+  - `OllamaAdapter`: Air-gapped local model adapter targeting `http://localhost:11434` for Private Mode.
+- **Token Bucket & Sliding-Window Rate Limiter (`app.llm.rate_limiter`)**:
+  - Enforces per-provider Requests Per Minute (RPM) and Tokens Per Minute (TPM) caps.
+  - Automatically avoids rate-limit exhaustion by shedding or diverting traffic to fallback providers.
+- **Automatic Fallback Chain Engine (`app.llm.router`)**:
+  - Role-based dispatch following `llm_routing.yaml`:
+    - `scanner`, `root_cause`, `patcher`, `explainer`: Primary Google Gemini with automatic failover to Groq and Ollama.
+    - `critic`: Primary Groq LLaMA/Qwen with automatic failover to Gemini (guaranteeing cross-model independent review).
+  - On provider error (HTTP 429 rate limit, 503 high demand, or network timeout), seamlessly routes to the next candidate in the chain.
+- **Prompt and Model Response Cache (`app.llm.cache`)**:
+  - Deterministic SHA-256 request hashing caching prompt responses to prevent redundant quota usage and accelerate repetitive queries.
+- **Interactive Credentials & Services Settings Page (`/settings`)**:
+  - Live provider status indicators (`Configured`, `Key Missing`, `Ready`).
+  - Interactive "Test Connection" buttons making live health-check API calls and reporting measured response latencies in milliseconds.
+  - "Ping All Providers" concurrent health-check button.
+  - Switchable `LLM_MODE` at runtime (`Free Tier Multi-Provider`, `Deterministic Mock Mode`, `Private Mode Local Ollama`).
+- **Comprehensive Test Expansion**:
+  - 82 pytest tests passing with 81% coverage and 100% clean Ruff linting.
+  - Verified live API responses from Google Gemini and Groq using production credentials stored safely in git-ignored `.env`.
+
 ## [Phase P2 - Universal Layer & Trust Engine] - 2026-11-19
 
 ### Added
