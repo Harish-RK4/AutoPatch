@@ -9,6 +9,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from app.core.config import settings
+from app.memory.repo_memory import repo_memory
 from app.models.schemas import PatchDecision
 from app.patcher.pipeline import ACTIVE_PATCHES
 
@@ -101,8 +102,25 @@ async def verify_patch(patch_id: str):
 @router.post("/{patch_id}/decision")
 async def record_patch_decision(patch_id: str, payload: PatchDecision):
     """Records human developer decision (accept / reject / needs_review) and writes to change history."""
+    strategy = "minimal_diff"
+    project_id = "demo-proj-001"
+    bug_id = "demo-bug-001"
+
     if patch_id in ACTIVE_PATCHES:
-        ACTIVE_PATCHES[patch_id].status = payload.action
+        p = ACTIVE_PATCHES[patch_id]
+        p.status = payload.action
+        strategy = getattr(p, "strategy", "minimal_diff")
+        bug_id = getattr(p, "bug_id", "demo-bug-001")
+
+    # Record in persistent repository memory
+    memory_record = repo_memory.record_decision(
+        patch_id=patch_id,
+        project_id=project_id,
+        bug_id=bug_id,
+        decision=payload.action,  # type: ignore
+        strategy=strategy,
+        rationale=payload.note or "",
+    )
 
     return {
         "patch_id": patch_id,
@@ -111,15 +129,64 @@ async def record_patch_decision(patch_id: str, payload: PatchDecision):
         "status": "recorded",
         "git_branch": f"patch/{patch_id}",
         "actor": "demo@autopatch.dev",
+        "memory_feedback": memory_record,
     }
+
+
+def invert_unified_diff(diff: str) -> str:
+    """Computes mathematical inverse of a unified diff hunk for clean rollback."""
+    inverted_lines: list[str] = []
+    for line in diff.splitlines():
+        if line.startswith("--- "):
+            inverted_lines.append("--- " + line[4:].replace("a/", "b/"))
+        elif line.startswith("+++ "):
+            inverted_lines.append("+++ " + line[4:].replace("b/", "a/"))
+        elif line.startswith("+"):
+            inverted_lines.append("-" + line[1:])
+        elif line.startswith("-"):
+            inverted_lines.append("+" + line[1:])
+        else:
+            inverted_lines.append(line)
+    return "\n".join(inverted_lines)
 
 
 @router.post("/{patch_id}/rollback")
 async def rollback_patch(patch_id: str):
-    """Reverts an accepted patch branch cleanly with one click."""
+    """Reverts an accepted patch branch cleanly with one click and generates inverse revert diff."""
+    original_diff = ""
+    if patch_id in ACTIVE_PATCHES:
+        original_diff = getattr(ACTIVE_PATCHES[patch_id], "diff", "")
+    elif settings.DEMO_MODE:
+        from app.demo.seed_data import DEMO_PATCHES
+        dp = next((p for p in DEMO_PATCHES if p["id"] == patch_id), None)
+        if dp:
+            original_diff = dp.get("diff", "")
+
+    revert_diff = invert_unified_diff(original_diff) if original_diff else ""
+
+    # Record rollback in memory
+    repo_memory.record_decision(
+        patch_id=patch_id,
+        project_id="demo-proj-001",
+        bug_id="demo-bug-001",
+        decision="reject",
+        strategy="rollback",
+        rationale="Automated one-click rollback triggered by developer.",
+    )
+
     return {
         "patch_id": patch_id,
         "status": "rolled_back",
-        "branch": "main",
+        "rollback_branch": f"autopatch/revert-{patch_id}",
+        "revert_diff": revert_diff,
         "message": "Patch branch successfully reverted to origin clean state.",
+    }
+
+
+@router.get("/memory/{project_id}")
+async def get_project_repo_memory(project_id: str):
+    """Retrieves learned repository memory preferences and Critic hints."""
+    return {
+        "memory": repo_memory.get_project_memory(project_id),
+        "critic_hints": repo_memory.get_critic_hints(project_id),
     }
