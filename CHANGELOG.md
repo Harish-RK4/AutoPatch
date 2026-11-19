@@ -4,7 +4,25 @@ All notable changes to AutoPatch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Phase P1 - Core Loop & Ingestion Engine] - 2026-11-19
+
+### Added
+- **Pluggable SandboxRunner Architecture (`app.sandbox`)**: Clean abstract interface with two concrete implementations:
+  - `DockerSandboxRunner`: Production container runner with air-gapped network (`--network none`), read-only rootfs (`--read-only`), non-root execution (`--user 1000:1000`), CPU caps (`--cpus=1.0`), and RAM caps (`--memory=512m`).
+  - `LocalSubprocessSandboxRunner`: Local dev fallback for Python and Node.js on hosts without Docker; features ephemeral temporary directory workspaces with guaranteed cleanup, hard execution timeouts, output byte capping (256KB), and strict environment variable scrubbing (zero host API keys, secrets, or database URLs leaked).
+  - Explicit transparency labeling: Every run carries the label `Local Dev Subprocess (Not Network-Isolated — Docker Unavailable)`.
+- **Fail-Fast Production Startup Guard**: Configuration validator in `app.core.config` enforcing that `APP_ENV=production` strictly rejects `SANDBOX_MODE=local_dev` and requires Docker container isolation.
+- **Security-Hardened Archive Ingestion (`SafeArchiveIngester`)**: Multipart `.zip` extraction enforcing:
+  - Zip-slip path traversal attack rejection (blocks `..` sequences, absolute root paths).
+  - Zip-bomb decompression ratio limit (>100:1) and total uncompressed size limit (100MB).
+  - Corrupted archive rejection and safe file extraction.
+- **Polyglot Language & Format Detector (`app.ingestion.detector`)**: Automatic detection across code (Python, JS, TS, C/C++, Go, Rust, Java, Ruby, PHP, SQL, Shell), structured datasets (JSON, CSV, TSV, SQLite, Parquet), project manifests, shebangs, and honest binary file identification.
+- **AST & Call-Graph Indexer (`app.indexing`)**: Python AST visitor and JS regex/parser extracting function/class/method symbol tables, decorators, parameters, import relationships, directed call graph edges, and cyclomatic complexity scores.
+- **Polyglot Static Scanner (`app.scanner`)**: AST syntax checks, security rules (insecure `eval`/`exec`, `subprocess.Popen(..., shell=True)`, hardcoded credentials/API keys), and logic flaw checks (literal zero division, broad exception swallowing), coupled with Mock LLM router explanations.
+- **Autonomous 5-Step Core Loop Pipeline (`app.patcher.pipeline`)**: End-to-end `UPLOAD -> SCAN -> EXPLAIN -> FIX -> TEST` loop executing dual sandbox verification (pre-patch reproduction + post-patch verification), computing unified diffs, measuring real execution durations, and assigning verification tiers (V1-V4).
+- **Backend Test Expansion**: 50 pytest unit and integration tests passing with 82% coverage, 100% clean Ruff linting.
+
+## [Phase P0 - Shell & Foundation] - 2026-11-19
 
 ### Added
 - **Exact Bento Control-Room Visual Fidelity (`/dashboard`)**: Rebuilt `/dashboard` to strictly match the reference architecture with warm off-white (`#F4F2ED`) canvas, luminous golden-amber ambient radial glow, frosted translucent cards (`bg-white/75 backdrop-blur-md border border-white/80 rounded-2xl`), floating top header with centered route pill dock (`[ :: Dashboard ]`), dynamic user greeting (`Welcome Back, {session.name}`), and top quick action pills.

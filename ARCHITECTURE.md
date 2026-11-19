@@ -61,3 +61,17 @@ AutoPatch operates on zero-cost free and local AI models without requiring paid 
 - All demo fixtures, seed data, and demo authentication live exclusively within the `/demo` module.
 - Production code paths never import from `/demo`.
 - Build-time guards reject deployment if `DEMO_MODE=true` when running under `NODE_ENV=production` or `APP_ENV=production`.
+
+## 6. Pluggable Sandbox & Ingestion Architecture (Phase P1)
+
+AutoPatch decouples code execution through the `SandboxRunner` abstraction:
+- **`DockerSandboxRunner`**: Production standard using air-gapped containers (`--network none`), read-only rootfs (`--read-only`), non-root execution (`--user 1000:1000`), CPU quotas (`--cpus=1.0`), and RAM caps (`--memory=512m`).
+- **`LocalSubprocessSandboxRunner`**: Development fallback when Docker is unavailable on the local host. Features:
+  - Ephemeral scratch directories (`tempfile.mkdtemp`) with guaranteed cleanup.
+  - Process timeout management (`subprocess.TimeoutExpired`).
+  - Output byte capping (256KB) preventing buffer bloat.
+  - Strict environment scrubbing (zero host API keys, secrets, or database URLs inherited by child processes).
+  - Explicit UI and API transparency labeling (`Local Dev Subprocess (Not Network-Isolated — Docker Unavailable)`).
+- **Fail-Fast Production Startup Guard**: Startup rejects `SANDBOX_MODE=local_dev` when `APP_ENV=production`.
+- **Security-Hardened Archive Ingestion (`SafeArchiveIngester`)**: Rejects zip-slip path traversal sequences (`..`), enforces 100:1 decompression ratio caps (zip-bomb defense), and enforces a 100MB uncompressed extraction limit.
+- **Polyglot Detector & AST Indexer**: Auto-detects polyglot languages/formats, parses ASTs (Python `ast`, JS parser), and builds function symbol tables and call graph hierarchies.

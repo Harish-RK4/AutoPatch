@@ -8,7 +8,11 @@ AutoPatch ingests source code across languages, configs, and datasets, finds bug
 
 ## Key Features
 
-- **Universal Polyglot Ingestion**: Upload source files, tabular datasets (CSV/JSON/SQL), or pasted snippets without language boundaries (`/projects/new`).
+- **Universal Polyglot Ingestion**: Upload `.zip` archives with zip-slip and zip-bomb security bounds, multi-file code repositories, tabular datasets (CSV/JSON/SQL), or pasted error traces (`/projects/new`).
+- **Pluggable Sandbox Isolation**: Execute code and tests inside container or scrubbed process isolation (`DockerSandboxRunner` with `--network none` or dev-only `LocalSubprocessSandboxRunner` with secret env scrubbing).
+- **Polyglot AST & Call-Graph Indexer**: Python AST and JavaScript indexers extracting function/class symbols, directed call edges, import maps, and cyclomatic complexity.
+- **Polyglot Vulnerability & Flaw Scanner**: Static detection of AST syntax errors, dangerous `eval`/`exec`, `subprocess(shell=True)`, hardcoded credentials, and zero division.
+- **Autonomous 5-Step Repair Loop**: Automated `UPLOAD -> SCAN -> EXPLAIN -> FIX -> TEST` cycle with dual sandbox verification and live duration recording.
 - **Bento Control-Room Dashboard**: High-density engineering control room featuring a sleek top pill dock, ambient sunlit-cream canvas, Verification Pulse arc gauge, and real computed sparklines (`/dashboard`).
 - **Verification Ladder (V0–V4)**: Every patch carries an honest verification rating capped strictly by sandbox test results (`V4 Proven` down to `V0 Unverified`).
 - **Explainable Program Repair**: Origin line vs. crash line isolation, three-tier explanations (Beginner, Developer, Manager), and per-hunk "why" cards.
