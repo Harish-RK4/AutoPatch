@@ -144,13 +144,36 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return { user: null, error: "Supabase credentials missing in .env (NEXT_PUBLIC_SUPABASE_URL)." };
     }
 
-    const { data, error } = await this.supabase.auth.signInWithPassword({
+    let { data, error } = await this.supabase.auth.signInWithPassword({
       email,
       password: pass,
     });
 
+    // If unconfirmed or rate limited, automatically confirm the user via Admin API
+    if (error && (error.message.toLowerCase().includes("not confirmed") || error.message.toLowerCase().includes("invalid login credentials"))) {
+      try {
+        const confirmRes = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: pass }),
+        });
+        if (confirmRes.ok) {
+          const retry = await this.supabase.auth.signInWithPassword({
+            email,
+            password: pass,
+          });
+          if (retry.data?.user) {
+            data = retry.data;
+            error = null;
+          }
+        }
+      } catch (e) {
+        // Fallback to error return
+      }
+    }
+
     if (error || !data.user) {
-      return { user: null, error: error?.message || "Authentication failed." };
+      return { user: null, error: error?.message || "Authentication failed. Please verify your email and password." };
     }
 
     const user: AuthUser = {
@@ -219,10 +242,9 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return { user: null, error: "Supabase credentials missing in .env." };
     }
 
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+    // 1. Primary path: Local Next.js API route using Admin API (auto-confirms, zero SMTP email rate limits)
     try {
-      // Attempt server-side registration using admin service role to auto-confirm email
-      const res = await fetch(`${apiBase}/api/v1/auth/register`, {
+      const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password: pass, full_name: fullName }),
@@ -231,14 +253,26 @@ export class SupabaseAuthProvider implements IAuthProvider {
         return await this.signIn(email, pass);
       } else {
         const errJson = await res.json().catch(() => ({}));
-        if (errJson.detail) {
-          return { user: null, error: errJson.detail };
+        if (errJson.detail?.toLowerCase().includes("already registered") || errJson.detail?.toLowerCase().includes("already exists")) {
+          return await this.signIn(email, pass);
         }
       }
     } catch (e) {
-      // Fallback to client SDK
+      // 2. Secondary path: FastAPI backend endpoint
+      const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      try {
+        const bRes = await fetch(`${apiBase}/api/v1/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password: pass, full_name: fullName }),
+        });
+        if (bRes.ok) {
+          return await this.signIn(email, pass);
+        }
+      } catch (be) {}
     }
 
+    // 3. Fallback to Supabase client SDK with rate limit protection
     const { data, error } = await this.supabase.auth.signUp({
       email,
       password: pass,
@@ -247,8 +281,18 @@ export class SupabaseAuthProvider implements IAuthProvider {
       },
     });
 
-    if (error || !data.user) {
-      return { user: null, error: error?.message || "Sign up failed." };
+    if (error) {
+      if (error.message.toLowerCase().includes("rate limit") || error.message.toLowerCase().includes("over_email_send")) {
+        const loginAttempt = await this.signIn(email, pass);
+        if (loginAttempt.user) {
+          return loginAttempt;
+        }
+        return {
+          user: null,
+          error: "Supabase free email rate limit exceeded. Your account has been registered in Supabase. Please click 'Sign In' or use the 1-Click Sign In button.",
+        };
+      }
+      return { user: null, error: error.message };
     }
 
     return await this.signIn(email, pass);

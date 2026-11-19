@@ -97,7 +97,8 @@ export function TopNav() {
     getAuthProvider().getSession().then(setUser);
     const unsubscribe = getAuthProvider().onAuthStateChange(setUser);
     // Fetch live notifications if available
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+    const rawApi = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+    const apiBase = rawApi.endsWith("/api/v1") ? rawApi : `${rawApi.replace(/\/$/, "")}/api/v1`;
     fetch(`${apiBase}/notifications`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
