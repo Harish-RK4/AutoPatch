@@ -3,33 +3,35 @@
 @tailwind utilities;
 
 :root {
-  --canvas: #FAF9F6;
+  --canvas: #FAF8F5;
   --surface: #FFFFFF;
+  --surface-translucent: rgba(255, 255, 255, 0.85);
   --border: #E7E5E4;
   --text-primary: #1C1917;
-  --text-secondary: #78716C;
+  --text-secondary: #57534E;
   --accent: #0F766E;
   --accent-hover: #115E59;
   --accent-subtle: rgba(15, 118, 110, 0.08);
-  --semantic-amber: #F59E0B;
-  --semantic-emerald: #10B981;
-  --semantic-rose: #EF4444;
-  --semantic-zinc: #6B7280;
+  --semantic-amber: #D97706;
+  --semantic-emerald: #059669;
+  --semantic-rose: #DC2626;
+  --semantic-zinc: #52525B;
 }
 
 .dark {
   --canvas: #0C0A09;
   --surface: #141210;
+  --surface-translucent: rgba(20, 18, 16, 0.85);
   --border: #292524;
   --text-primary: #F5F5F4;
-  --text-secondary: #A8A29E;
+  --text-secondary: #D6D3D1;
   --accent: #14B8A6;
   --accent-hover: #0D9488;
   --accent-subtle: rgba(20, 184, 166, 0.12);
-  --semantic-amber: #D97706;
-  --semantic-emerald: #059669;
-  --semantic-rose: #DC2626;
-  --semantic-zinc: #9CA3AF;
+  --semantic-amber: #F59E0B;
+  --semantic-emerald: #10B981;
+  --semantic-rose: #EF4444;
+  --semantic-zinc: #A1A1AA;
 }
 
 body {
@@ -37,6 +39,25 @@ body {
   color: var(--text-primary);
   font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   -webkit-font-smoothing: antialiased;
+  background-image: 
+    radial-gradient(ellipse at 75% 0%, rgba(245, 158, 11, 0.09), transparent 50%),
+    radial-gradient(ellipse at 15% 10%, rgba(15, 118, 110, 0.05), transparent 45%);
+  background-attachment: fixed;
+}
+
+.dark body {
+  background-image: 
+    radial-gradient(ellipse at 75% 0%, rgba(217, 119, 6, 0.06), transparent 50%),
+    radial-gradient(ellipse at 15% 10%, rgba(20, 184, 166, 0.04), transparent 45%);
+}
+
+/* Translucent Bento Card Helper */
+.bento-card {
+  background-color: var(--surface-translucent);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
 }
 
 /* Custom Scrollbars */
