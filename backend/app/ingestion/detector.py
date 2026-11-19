@@ -114,6 +114,18 @@ def detect_file_language(
     # 3. Check extension
     if suffix in EXTENSION_MAP:
         lang, cat, supported = EXTENSION_MAP[suffix]
+        # Content sniffing for text files that actually contain code
+        if suffix in (".txt", "") and content_sample:
+            try:
+                sample_text = content_sample[:2048].decode("utf-8", errors="ignore").lower()
+                if "python" in filename or any(kw in sample_text for kw in ("print(", "def ", "import ", "class ", "elif ")):
+                    return DetectionResult("python", "code", True, False, 0.90)
+                elif any(kw in sample_text for kw in ("console.log", "function ", "const ", "let ")):
+                    return DetectionResult("javascript", "code", True, False, 0.90)
+                elif "select " in sample_text and "from " in sample_text:
+                    return DetectionResult("sql", "code", False, False, 0.90)
+            except (UnicodeDecodeError, ValueError):
+                pass
         return DetectionResult(
             language=lang,
             category=cat,
@@ -121,6 +133,12 @@ def detect_file_language(
             is_binary=False,
             confidence=0.90,
         )
+
+    # 4. Check filename tokens
+    if "python" in filename:
+        return DetectionResult("python", "code", True, False, 0.90)
+    elif "node" in filename or "javascript" in filename:
+        return DetectionResult("javascript", "code", True, False, 0.90)
 
     # 4. Check shebang line if text sample provided
     if content_sample:
