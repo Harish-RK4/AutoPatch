@@ -887,3 +887,23 @@ def clean_dataset(raw_input: str) -> str:
     summary: "Analyzed 5 rows across 4 columns. Identified 3 anomalies. Corrected 3 rows via idempotent script. All invariants satisfied (V4).",
   };
 }
+
+export async function triggerVoiceCall(
+  projectId: string,
+  phoneNumber: string,
+  developerName: string = "Developer"
+) {
+  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/call-ai`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      phone_number: phoneNumber,
+      developer_name: developerName,
+    }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || "Failed to trigger voice call");
+  }
+  return await res.json();
+}

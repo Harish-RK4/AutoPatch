@@ -25,12 +25,15 @@ import {
   Download,
   GitBranch,
   Wand2,
+  PhoneCall,
+  X,
 } from "lucide-react";
 import {
   fetchProject,
   fetchProjectBugs,
   executePipeline,
   applyPatch,
+  triggerVoiceCall,
   ProjectData,
 } from "@/lib/api";
 
@@ -50,6 +53,33 @@ export default function ProjectDetailsPage() {
   const [isApplying, setIsApplying] = useState(false);
   const [appliedNotice, setAppliedNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Talk to AutoPatch AI Voice Call State
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("+91");
+  const [developerName, setDeveloperName] = useState("Harish");
+  const [isCalling, setIsCalling] = useState(false);
+  const [callStatus, setCallStatus] = useState<{ success: boolean; message: string; callSid?: string } | null>(null);
+  const [callError, setCallError] = useState<string | null>(null);
+
+  const handleTriggerCall = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsCalling(true);
+    setCallError(null);
+    setCallStatus(null);
+    try {
+      const res = await triggerVoiceCall(projectId, phoneNumber, developerName);
+      setCallStatus({
+        success: true,
+        message: res.message || `AutoPatch AI is dialing ${phoneNumber}...`,
+        callSid: res.call_sid,
+      });
+    } catch (err: any) {
+      setCallError(err.message || "Failed to trigger phone call. Please check the number format.");
+    } finally {
+      setIsCalling(false);
+    }
+  };
 
   useEffect(() => {
     fetchProject(projectId).then((p) => {
@@ -221,7 +251,20 @@ export default function ProjectDetailsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            onClick={() => {
+              setIsVoiceModalOpen(true);
+              setCallStatus(null);
+              setCallError(null);
+            }}
+            variant="secondary"
+            className="border-[#0F766E]/40 text-[#0F766E] dark:text-[#14B8A6] hover:bg-[#0F766E]/10 flex items-center gap-1.5 shadow-sm font-semibold"
+          >
+            <PhoneCall className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6] animate-pulse" />
+            Talk to AutoPatch AI
+          </Button>
+
           {hasPatchedCode && !isFixed && (
             <Button
               onClick={() => handleApplyFix()}
@@ -646,6 +689,128 @@ export default function ProjectDetailsPage() {
           </div>
         )}
       </div>
+
+      {/* Talk to AutoPatch AI Voice Call Modal */}
+      {isVoiceModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-2xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+            {/* Close button */}
+            <button
+              onClick={() => setIsVoiceModalOpen(false)}
+              className="absolute top-4 right-4 text-[#78716C] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#0F766E]/10 dark:bg-[#14B8A6]/10 flex items-center justify-center text-[#0F766E] dark:text-[#14B8A6]">
+                <PhoneCall className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4]">
+                  Talk to AutoPatch AI
+                </h3>
+                <p className="text-xs text-[#78716C] dark:text-[#A8A29E]">
+                  Alex (Voice Engineer) calls your phone to explain the fix
+                </p>
+              </div>
+            </div>
+
+            {/* Context Summary */}
+            <div className="p-3 bg-[#0F766E]/5 dark:bg-[#14B8A6]/5 border border-[#0F766E]/20 dark:border-[#14B8A6]/20 rounded-xl space-y-1.5 text-xs">
+              <div className="flex items-center justify-between text-[#57534E] dark:text-[#D6D3D1]">
+                <span className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">Target File:</span>
+                <span className="font-mono">{project?.filename || "students.py"}</span>
+              </div>
+              <div className="flex items-center justify-between text-[#57534E] dark:text-[#D6D3D1]">
+                <span className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">Spoken Agent:</span>
+                <span>Alex · AutoPatch Core Engineer</span>
+              </div>
+              <div className="flex items-center justify-between text-[#57534E] dark:text-[#D6D3D1]">
+                <span className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">Voice Tech:</span>
+                <span>Twilio 2-Way Stream + Groq LLM + Polly Neural</span>
+              </div>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleTriggerCall} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-[#1C1917] dark:text-[#F5F5F4] mb-1">
+                  Developer Name
+                </label>
+                <input
+                  type="text"
+                  value={developerName}
+                  onChange={(e) => setDeveloperName(e.target.value)}
+                  placeholder="Your Name (e.g. Harish)"
+                  required
+                  className="w-full px-3 py-2 text-xs bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0F766E] text-[#1C1917] dark:text-[#F5F5F4]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#1C1917] dark:text-[#F5F5F4] mb-1">
+                  Phone Number (with Country Code)
+                </label>
+                <input
+                  type="tel"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+919876543210 or +14155552671"
+                  required
+                  className="w-full px-3 py-2 text-xs font-mono bg-white dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] rounded-lg focus:outline-none focus:ring-1 focus:ring-[#0F766E] text-[#1C1917] dark:text-[#F5F5F4]"
+                />
+                <p className="text-[10px] text-[#78716C] dark:text-[#A8A29E] mt-1">
+                  Format: +91 for India, +1 for USA. Enter the number you want Alex to call.
+                </p>
+              </div>
+
+              {callError && (
+                <div className="p-3 bg-[#EF4444]/10 border border-[#EF4444]/20 rounded-xl text-xs text-[#DC2626] dark:text-[#F87171] leading-relaxed">
+                  {callError}
+                </div>
+              )}
+
+              {callStatus && (
+                <div className="p-3 bg-[#10B981]/10 border border-[#10B981]/30 rounded-xl text-xs text-[#059669] dark:text-[#34D399] space-y-1">
+                  <div className="font-semibold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
+                    Call Placed!
+                  </div>
+                  <p className="text-[#57534E] dark:text-[#D6D3D1]">{callStatus.message}</p>
+                  {callStatus.callSid && (
+                    <p className="font-mono text-[10px] text-[#78716C]">Call SID: {callStatus.callSid}</p>
+                  )}
+                  <p className="text-[11px] font-medium text-[#0F766E] dark:text-[#14B8A6] pt-1">
+                    Your phone is ringing! Answer to speak with Alex about why your code failed and how it was fixed.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setIsVoiceModalOpen(false)}
+                  className="text-xs"
+                >
+                  Close
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isCalling}
+                  variant="primary"
+                  className="bg-[#0F766E] hover:bg-[#115E59] text-white text-xs flex items-center gap-1.5 shadow-sm font-semibold"
+                >
+                  <PhoneCall className="w-3.5 h-3.5" />
+                  {isCalling ? "Dialing Phone..." : "Call My Phone"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
