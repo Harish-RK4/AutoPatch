@@ -8,11 +8,30 @@ AutoPatch ingests source code across languages, configs, and datasets, finds bug
 
 ## Key Features
 
-- **Universal Polyglot Analysis**: Inspects code in any language, SQL, Dockerfiles, and structured datasets without hardcoded limits.
-- **Verification Ladder (V0–V4)**: Patches carry an honest verification badge backed by concrete test execution.
-- **Zero-Paid-Key Architecture**: LLM Router supports free-tier providers (Gemini, Groq, Mistral) and local Ollama, with a deterministic Mock Provider for offline testing.
-- **Explainable Program Repair**: Interactive stack traces, frame mapping, origin line vs. crash line isolation, and three-tier explanations (Beginner, Developer, Manager).
-- **Strict Demo Isolation**: Seed data lives strictly inside `/demo` and is barred from production execution.
+- **Universal Polyglot Ingestion**: Upload source files, tabular datasets (CSV/JSON/SQL), or pasted snippets without language boundaries (`/projects/new`).
+- **Bento Control-Room Dashboard**: High-density engineering control room featuring a sleek top pill dock, ambient sunlit-cream canvas, Verification Pulse arc gauge, and real computed sparklines (`/dashboard`).
+- **Verification Ladder (V0–V4)**: Every patch carries an honest verification rating capped strictly by sandbox test results (`V4 Proven` down to `V0 Unverified`).
+- **Explainable Program Repair**: Origin line vs. crash line isolation, three-tier explanations (Beginner, Developer, Manager), and per-hunk "why" cards.
+- **Strict Demo Isolation & No Fake Data**: Seed data lives strictly inside `/demo` behind demo guards; real user uploads are handled without fabricated stats or hallucinated bugs.
+- **Zero-Cloud-Key Architecture**: Local `MockLLMProvider` and Ollama support enable 100% offline development and testing.
+
+---
+
+## Route Overview
+
+| Route | Purpose | Access |
+|---|---|---|
+| `/` | Landing page, "Build for Trust" manifesto, Marks Calculator preview | Public |
+| `/login` | Sign In, Sign Up, and 1-Click Quick Demo Sign In | Public |
+| `/dashboard` | Bento Control Room, Verification Pulse, sparklines & stream | Authenticated |
+| `/projects` | Workspace target list with filter pills (`All`, `My Ingestions`, `Demo Seed`) | Authenticated |
+| `/projects/new` | Universal Ingestion Workspace (Upload Code, Upload Dataset, Paste Error) | Authenticated |
+| `/projects/:id` | Workspace 5-stage stepper, file index, syntax viewer, and bug list | Authenticated |
+| `/bugs` | Defect inventory with origin/crash lines and proof status | Authenticated |
+| `/bugs/:id` | 6-section defect diagnostic report with 3-tier audience explanations | Authenticated |
+| `/patches` | Synthesized minimal diff candidate list and ranking | Authenticated |
+| `/patches/:id` | Monaco-style split diff viewer, per-hunk "why" card, and sign-off toolbar | Authenticated |
+| `/settings` | LLM router connectivity table, role mapping, and provider tests | Authenticated |
 
 ---
 
@@ -32,13 +51,7 @@ cd AutoPatch
 cp .env.example .env
 ```
 
-### 3. Verify Configuration
-Run the environment and credentials verification check:
-```bash
-npm run check:env
-```
-
-### 4. Install Dependencies
+### 3. Install Dependencies
 ```bash
 # Frontend dependencies
 cd frontend
@@ -48,54 +61,34 @@ npm install
 cd ../backend
 python -m venv .venv
 # Windows PowerShell:
-.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-### 5. Run the Application (P0 Demo Mode)
-In demo mode, no external keys or databases are required:
+### 4. Run Verification & Phase Gate
 ```bash
-# Run backend (from backend directory)
-uvicorn app.main:app --reload --port 8000
-
-# Run frontend (from frontend directory)
-npm run dev
-```
-
-Visit `http://localhost:3000` to access the application starting page. Explore the live interactive defect demo, review the 5-step pipeline, and log into the demo portal (`http://localhost:3000/login`) using:
-- **Email**: `demo@autopatch.dev`
-- **Password**: `Demo@1234`
-
-### Application Routes & Navigation
-- `/`: AutoPatch starting page with "Build for Trust" overview, 5-stage workflow, and code-to-proof preview.
-- `/dashboard`: Engineering dashboard with active workspaces and verification metrics.
-- `/projects`: Multi-language workspaces inventory (`/projects/demo-proj-001`).
-- `/bugs`: Defect inventory with origin/crash lines and confidence rankings (`/bugs/demo-bug-001`).
-- `/patches`: Patch review panel with split diff viewer and proof bundles (`/patches/demo-patch-001`).
-- `/history`: Audit & change history with rollback (Designed empty state for P0).
-- `/analytics`: Telemetry and defect intelligence dashboard (Designed empty state for P0).
-- `/settings`: LLM engine routing table (`llm_routing.yaml`), provider quotas, and connection testing.
-
----
-
-## Testing & Quality Assurance
-
-Run the test suite across frontend and backend:
-```bash
-# Backend pytest suite (with LLM_MODE=mock)
+# Run backend tests and coverage
 cd backend
-pytest -v
+python -m pytest --cov=app
 
-# Frontend test suite
+# Run backend linter
+python -m ruff check .
+
+# Run frontend build and production demo guard
 cd ../frontend
-npm test
+npm run build
 
-# End-to-end smoke test
-npm run smoke
+# Run Playwright + Axe accessibility suite
+node scripts/verify-routes-axe.js
 ```
 
----
+### 5. Start Servers
+```bash
+# Backend server (port 8000)
+cd backend
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
 
-## License
-
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+# Frontend server (port 3000)
+cd frontend
+npm run start
+```
