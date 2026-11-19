@@ -21,33 +21,58 @@ router = APIRouter(prefix="/bugs", tags=["bugs"])
 async def list_all_bugs(filter_mode: str = "all"):
     """
     Lists all active bugs.
-    In Phase P0 mock mode, user projects return 0 bugs (no fake data).
-    Demo fixtures return seeded reproducible bugs.
+    - User pipeline runs return real detected flaws.
+    - Demo fixtures return seeded reproducible bugs.
     """
-    if filter_mode == "user":
-        return []
+    results: list[BugSummary] = []
+
+    # Include bugs detected from real user pipeline runs
+    if filter_mode in ("all", "user"):
+        from app.patcher.pipeline import PROJECT_PIPELINE_RUNS
+
+        for proj_id, run_data in PROJECT_PIPELINE_RUNS.items():
+            for issue in run_data.get("issues", []):
+                results.append(
+                    BugSummary(
+                        id=issue["id"],
+                        project_id=proj_id,
+                        title=f"{issue['rule_id']}: {issue['message']}",
+                        file_path=issue["file_path"],
+                        line_start=issue["line_number"],
+                        line_end=issue["line_number"],
+                        origin_line=issue["line_number"],
+                        crash_line=issue["line_number"],
+                        category=issue["category"],
+                        severity=issue["severity"],
+                        confidence_score=95.0,
+                        verification_level="V3",
+                        state="open",
+                    )
+                )
+
     if settings.DEMO_MODE and filter_mode in ("all", "demo"):
         from app.demo.seed_data import DEMO_BUGS
 
-        return [
-            BugSummary(
-                id=b["id"],
-                project_id=b["project_id"],
-                title=b["title"],
-                file_path=b["file_path"],
-                line_start=b["line_start"],
-                line_end=b["line_end"],
-                origin_line=b.get("origin_line"),
-                crash_line=b.get("crash_line"),
-                category=b["category"],
-                severity=b["severity"],
-                confidence_score=b["confidence_score"],
-                verification_level=b["verification_level"],
-                state=b["state"],
+        for b in DEMO_BUGS:
+            results.append(
+                BugSummary(
+                    id=b["id"],
+                    project_id=b["project_id"],
+                    title=b["title"],
+                    file_path=b["file_path"],
+                    line_start=b["line_start"],
+                    line_end=b["line_end"],
+                    origin_line=b.get("origin_line"),
+                    crash_line=b.get("crash_line"),
+                    category=b["category"],
+                    severity=b["severity"],
+                    confidence_score=b["confidence_score"],
+                    verification_level=b["verification_level"],
+                    state=b["state"],
+                )
             )
-            for b in DEMO_BUGS
-        ]
-    return []
+
+    return results
 
 
 @router.get("/{bug_id}", response_model=BugDetail)

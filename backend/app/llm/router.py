@@ -142,6 +142,9 @@ class LLMRouter:
 
         return {"provider": provider, "configured": False, "status": "unknown_provider"}
 
+    # Alias complete to route for compatibility
+    complete = route
+
     def get_status(self) -> dict[str, Any]:
         """Returns routing table, active mode, and provider limits."""
         return {

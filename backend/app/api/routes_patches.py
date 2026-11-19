@@ -3,11 +3,49 @@ Patches API Router
 Handles patch verification, developer review decisions, and branch rollback.
 """
 
-from fastapi import APIRouter
+from typing import Any
 
+from fastapi import APIRouter, HTTPException
+
+from app.core.config import settings
 from app.models.schemas import PatchDecision
+from app.patcher.pipeline import ACTIVE_PATCHES
 
 router = APIRouter(prefix="/patches", tags=["patches"])
+
+
+@router.get("")
+async def list_patches():
+    """Returns all active synthesized patches and demo patches."""
+    patches: list[dict[str, Any]] = []
+
+    # Include real active patches from pipeline runs
+    for patch in ACTIVE_PATCHES.values():
+        patches.append(patch.to_dict())
+
+    # Include demo patches if DEMO_MODE
+    if settings.DEMO_MODE:
+        from app.demo.seed_data import DEMO_PATCHES
+
+        patches.extend(DEMO_PATCHES)
+
+    return patches
+
+
+@router.get("/{patch_id}")
+async def get_patch(patch_id: str):
+    """Retrieve details for a specific patch candidate."""
+    if patch_id in ACTIVE_PATCHES:
+        return ACTIVE_PATCHES[patch_id].to_dict()
+
+    if settings.DEMO_MODE:
+        from app.demo.seed_data import DEMO_PATCHES
+
+        p = next((dp for dp in DEMO_PATCHES if dp["id"] == patch_id), None)
+        if p:
+            return p
+
+    raise HTTPException(status_code=404, detail="Patch not found")
 
 
 @router.post("/{patch_id}/verify")

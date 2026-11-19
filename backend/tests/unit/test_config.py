@@ -20,8 +20,25 @@ def test_production_guard_rejects_demo_mode():
         Settings(APP_ENV="production", DEMO_MODE=True)
 
 
-def test_production_guard_accepts_non_demo_mode():
-    """Confirms that production mode is valid when DEMO_MODE=False."""
-    s = Settings(APP_ENV="production", DEMO_MODE=False, NEXT_PUBLIC_AUTH_MODE="supabase")
+def test_production_guard_accepts_valid_production_config():
+    """Confirms that production mode is valid when DEMO_MODE=False and SANDBOX_MODE=docker."""
+    s = Settings(
+        APP_ENV="production",
+        DEMO_MODE=False,
+        NEXT_PUBLIC_AUTH_MODE="supabase",
+        SANDBOX_MODE="docker",
+    )
     assert s.APP_ENV == "production"
     assert s.DEMO_MODE is False
+    assert s.SANDBOX_MODE == "docker"
+
+
+def test_production_guard_rejects_local_dev_sandbox():
+    """Confirms that SANDBOX_MODE=local_dev in production raises a RuntimeError."""
+    with pytest.raises(RuntimeError, match="SANDBOX_MODE=local_dev is strictly forbidden in production"):
+        Settings(
+            APP_ENV="production",
+            DEMO_MODE=False,
+            NEXT_PUBLIC_AUTH_MODE="supabase",
+            SANDBOX_MODE="local_dev",
+        )
