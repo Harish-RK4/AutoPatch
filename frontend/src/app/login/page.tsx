@@ -3,9 +3,10 @@
 import React, { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, ArrowRight, CheckCircle2, AlertTriangle, KeyRound, UserPlus } from "lucide-react";
+import { ShieldCheck, ArrowRight, CheckCircle2, AlertTriangle, KeyRound, UserPlus, Database } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { AuthManager } from "@/lib/auth";
+import { getAuthProvider } from "@/lib/authProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 function LoginForm() {
@@ -13,35 +14,73 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get("redirect") || "/dashboard";
 
+  const authProvider = getAuthProvider();
+  const isSupabase = authProvider.getMode() === "supabase";
+
   const [tab, setTab] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("demo@autopatch.dev");
-  const [password, setPassword] = useState("Demo@1234");
+  const [email, setEmail] = useState(isSupabase ? "" : "demo@autopatch.dev");
+  const [password, setPassword] = useState(isSupabase ? "" : "Demo@1234");
   const [fullName, setFullName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSignIn = (e: React.FormEvent) => {
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    const user = AuthManager.signIn(email, password);
-    if (user) {
-      router.push(redirectUrl);
-    } else {
-      setError("Invalid credentials. Enter any valid email & 4+ char password, or use Quick Demo Login.");
+    setLoading(true);
+
+    try {
+      if (isSupabase) {
+        const res = await authProvider.signIn(email, password);
+        if (res.user) {
+          router.push(redirectUrl);
+        } else {
+          setError(res.error || "Authentication failed. Please verify your credentials.");
+        }
+      } else {
+        const user = AuthManager.signIn(email, password);
+        if (user) {
+          router.push(redirectUrl);
+        } else {
+          setError("Invalid credentials. Enter any valid email & 4+ char password, or use Quick Demo Login.");
+        }
+      }
+    } catch (err: any) {
+      setError(err?.message || "Sign in failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!fullName) {
+    if (!fullName.trim()) {
       setError("Please enter your full name.");
       return;
     }
-    const user = AuthManager.signUp(fullName, email, password);
-    if (user) {
-      router.push(redirectUrl);
-    } else {
-      setError("Please provide a valid email and password (min 4 characters).");
+    setLoading(true);
+
+    try {
+      if (isSupabase) {
+        const res = await authProvider.signUp(fullName, email, password);
+        if (res.user) {
+          router.push(redirectUrl);
+        } else {
+          setError(res.error || "Sign up failed. Please try again.");
+        }
+      } else {
+        const user = AuthManager.signUp(fullName, email, password);
+        if (user) {
+          router.push(redirectUrl);
+        } else {
+          setError("Please provide a valid email and password (min 4 characters).");
+        }
+      }
+    } catch (err: any) {
+      setError(err?.message || "Sign up failed. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -65,7 +104,18 @@ function LoginForm() {
                   AutoPatch
                 </span>
               </Link>
-              <ThemeToggle />
+              <div className="flex items-center gap-2">
+                {isSupabase ? (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#0F766E]/10 text-[#0F766E] dark:text-[#14B8A6] border border-[#0F766E]/30 font-semibold flex items-center gap-1">
+                    <Database className="w-3 h-3" /> Supabase Live Auth
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-[#D97706]/10 text-[#D97706] dark:text-[#F59E0B] border border-[#D97706]/30 font-semibold flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> Demo Auth Mode
+                  </span>
+                )}
+                <ThemeToggle />
+              </div>
             </div>
 
             {/* Auth Mode Tabs (Sign In / Sign Up) */}
@@ -133,20 +183,22 @@ function LoginForm() {
                 </div>
 
                 <div className="space-y-2 pt-2">
-                  <Button type="submit" variant="primary" className="w-full py-2">
-                    Sign In
-                    <ArrowRight className="w-3.5 h-3.5 ml-1.5 stroke-[1.5]" />
+                  <Button type="submit" variant="primary" disabled={loading} className="w-full py-2">
+                    {loading ? (isSupabase ? "Authenticating with Supabase..." : "Signing In...") : "Sign In"}
+                    {!loading && <ArrowRight className="w-3.5 h-3.5 ml-1.5 stroke-[1.5]" />}
                   </Button>
 
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={handleDemoLogin}
-                    className="w-full py-2 text-[#0F766E] dark:text-[#14B8A6] border-[#0F766E]/30"
-                  >
-                    <KeyRound className="w-3.5 h-3.5 mr-1.5 stroke-[1.5]" />
-                    Quick Demo Sign In (1-Click)
-                  </Button>
+                  {!isSupabase && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={handleDemoLogin}
+                      className="w-full py-2 text-[#0F766E] dark:text-[#14B8A6] border-[#0F766E]/30"
+                    >
+                      <KeyRound className="w-3.5 h-3.5 mr-1.5 stroke-[1.5]" />
+                      Quick Demo Sign In (1-Click)
+                    </Button>
+                  )}
                 </div>
               </form>
             ) : (
@@ -196,18 +248,25 @@ function LoginForm() {
                   />
                 </div>
 
-                <Button type="submit" variant="primary" className="w-full py-2">
+                <Button type="submit" variant="primary" disabled={loading} className="w-full py-2">
                   <UserPlus className="w-3.5 h-3.5 mr-1.5 stroke-[1.5]" />
-                  Create Developer Account
+                  {loading ? (isSupabase ? "Registering in Supabase..." : "Creating Account...") : "Create Developer Account"}
                 </Button>
               </form>
             )}
           </div>
 
-          <div className="mt-8 pt-4 border-t border-[#E7E5E4] dark:border-[#292524] text-[11px] text-[#57534E] dark:text-[#D6D3D1]">
-            <p className="font-semibold text-[#B45309] dark:text-[#FBBF24] mb-1">Demo Access Credentials:</p>
-            <p>Email: <code className="text-[#1C1917] dark:text-[#F5F5F4]">demo@autopatch.dev</code> · Password: <code className="text-[#1C1917] dark:text-[#F5F5F4]">Demo@1234</code></p>
-          </div>
+          {isSupabase ? (
+            <div className="mt-8 pt-4 border-t border-[#E7E5E4] dark:border-[#292524] text-[11px] text-[#57534E] dark:text-[#D6D3D1]">
+              <p className="font-semibold text-[#0F766E] dark:text-[#14B8A6] mb-1">Supabase Cloud Authentication Active</p>
+              <p>Authentication queries execute against your live Supabase project PostgreSQL instance with secure JWT tokens.</p>
+            </div>
+          ) : (
+            <div className="mt-8 pt-4 border-t border-[#E7E5E4] dark:border-[#292524] text-[11px] text-[#57534E] dark:text-[#D6D3D1]">
+              <p className="font-semibold text-[#B45309] dark:text-[#FBBF24] mb-1">Demo Access Credentials:</p>
+              <p>Email: <code className="text-[#1C1917] dark:text-[#F5F5F4]">demo@autopatch.dev</code> · Password: <code className="text-[#1C1917] dark:text-[#F5F5F4]">Demo@1234</code></p>
+            </div>
+          )}
         </div>
 
         {/* Right: Live Interactive Mini-Example */}
