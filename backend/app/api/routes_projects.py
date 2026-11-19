@@ -201,11 +201,13 @@ async def get_project(project_id: str):
 
     # Check demo projects
     if settings.DEMO_MODE:
-        from app.demo.seed_data import DEMO_PATCHES, DEMO_PROJECTS
+        from app.demo.seed_data import DEMO_BUGS, DEMO_PATCHES, DEMO_PROJECTS
 
         proj = next((p for p in DEMO_PROJECTS if p["id"] == project_id), None)
         if proj:
-            demo_patch = DEMO_PATCHES[0] if DEMO_PATCHES else {}
+            proj_bug_ids = [b["id"] for b in DEMO_BUGS if b["project_id"] == project_id]
+            proj_patches = [p for p in DEMO_PATCHES if p.get("bug_id") in proj_bug_ids]
+            demo_patch = proj_patches[0] if proj_patches else (DEMO_PATCHES[0] if DEMO_PATCHES else {})
             return ProjectResponse(
                 id=proj["id"],
                 name=proj["name"],
@@ -217,7 +219,7 @@ async def get_project(project_id: str):
                 files=proj.get("files", []),
                 patched_content=demo_patch.get("patched_code"),
                 unified_diff=demo_patch.get("diff"),
-                patches=DEMO_PATCHES,
+                patches=proj_patches or DEMO_PATCHES,
             )
 
     raise HTTPException(status_code=404, detail="Project not found")
@@ -467,9 +469,11 @@ async def apply_project_patch(project_id: str, payload: ApplyPatchRequest | None
 
     # Fallback to demo patch if demo project
     if not target_patch and settings.DEMO_MODE:
-        from app.demo.seed_data import DEMO_PATCHES
+        from app.demo.seed_data import DEMO_BUGS, DEMO_PATCHES
 
-        target_patch = DEMO_PATCHES[0]
+        proj_bug_ids = [b["id"] for b in DEMO_BUGS if b["project_id"] == project_id]
+        proj_patches = [p for p in DEMO_PATCHES if p.get("bug_id") in proj_bug_ids]
+        target_patch = proj_patches[0] if proj_patches else (DEMO_PATCHES[0] if DEMO_PATCHES else None)
 
     if not target_patch:
         raise HTTPException(status_code=404, detail="No synthesized patch available to apply")

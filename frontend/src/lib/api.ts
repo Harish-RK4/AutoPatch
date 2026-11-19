@@ -74,6 +74,15 @@ export async function fetchProjects(mode: "all" | "user" | "demo" = "all"): Prom
       status: "ready",
       created_at: "2026-11-19T05:30:00Z",
       filename: "grades.csv"
+    },
+    {
+      id: "demo-proj-005",
+      name: "Student Records & Marks System",
+      language: "python",
+      source_type: "demo",
+      status: "ready",
+      created_at: "2026-11-19T05:40:00Z",
+      filename: "students.py"
     }
   ];
 
@@ -277,6 +286,25 @@ export async function fetchProjectBugs(projectId: string) {
   } catch (err) {}
 
   if (projectId.startsWith("demo-")) {
+    if (projectId === "demo-proj-005") {
+      return [
+        {
+          id: "demo-bug-007",
+          project_id: projectId,
+          title: "BUG-PREMATURE-RETURN: Premature loop return in find_student exits after first record",
+          file_path: "students.py",
+          line_start: 25,
+          line_end: 30,
+          origin_line: 25,
+          crash_line: 29,
+          category: "logic",
+          severity: "high",
+          confidence_score: 95.0,
+          verification_level: "V4",
+          state: "confirmed"
+        }
+      ];
+    }
     return [
       {
         id: "demo-bug-001",

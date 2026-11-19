@@ -98,6 +98,70 @@ DEMO_PROJECTS: list[dict[str, Any]] = [
             }
         ],
     },
+    {
+        "id": "demo-proj-005",
+        "name": "Student Records & Marks System",
+        "language": "python",
+        "source_type": "demo",
+        "status": "ready",
+        "description": "Student management program with premature loop return in find_student and missing marks bounds.",
+        "created_at": "2026-11-19T05:40:00Z",
+        "files": [
+            {
+                "file_path": "students.py",
+                "content": (
+                    "students = []\n\n"
+                    "def add_student(name, age, marks):\n"
+                    "    student = {\n"
+                    "        \"name\": name,\n"
+                    "        \"age\": age,\n"
+                    "        \"marks\": marks\n"
+                    "    }\n"
+                    "    students.append(student)\n"
+                    "    print(\"Student added successfully\")\n\n\n"
+                    "def calculate_average():\n"
+                    "    total = 0\n\n"
+                    "    for student in students:\n"
+                    "        total += student[\"marks\"]\n\n"
+                    "    average = total / len(students)\n"
+                    "    return average\n\n\n"
+                    "def find_student(name):\n"
+                    "    for student in students:\n"
+                    "        if student[\"name\"] == name:\n"
+                    "            return student\n"
+                    "        else:\n"
+                    "            return None\n\n\n"
+                    "def update_marks(name, new_marks):\n"
+                    "    student = find_student(name)\n\n"
+                    "    if student:\n"
+                    "        student[\"marks\"] = new_marks\n"
+                    "        print(\"Marks updated\")\n"
+                    "    else:\n"
+                    "        print(\"Student not found\")\n\n\n"
+                    "def get_topper():\n"
+                    "    topper = students[0]\n\n"
+                    "    for student in students:\n"
+                    "        if student[\"marks\"] > topper[\"marks\"]:\n"
+                    "            topper = student\n\n"
+                    "    return topper\n\n\n"
+                    "def display_students():\n"
+                    "    for student in students:\n"
+                    "        print(\"Name:\", student[\"name\"])\n"
+                    "        print(\"Age:\", student[\"age\"])\n"
+                    "        print(\"Marks:\", student[\"marks\"])\n\n\n"
+                    "# Main program\n"
+                    "add_student(\"Aliya\", 20, 85)\n"
+                    "add_student(\"Rahul\", -5, 90)\n"
+                    "add_student(\"John\", 21, 75)\n\n"
+                    "print(\"Average:\", calculate_average())\n\n"
+                    "print(\"Search result:\", find_student(\"John\"))\n\n"
+                    "update_marks(\"Rahul\", 95)\n\n"
+                    "print(\"Topper:\", get_topper())\n\n"
+                    "display_students()\n"
+                ),
+            }
+        ],
+    },
 ]
 
 DEMO_BUGS: list[dict[str, Any]] = [
@@ -293,6 +357,38 @@ DEMO_BUGS: list[dict[str, Any]] = [
             "files": ["userDirectory.js"],
         },
     },
+    {
+        "id": "demo-bug-007",
+        "project_id": "demo-proj-005",
+        "title": "BUG-PREMATURE-RETURN: Premature loop return in find_student exits after first record",
+        "description": "In find_student, 'else: return None' inside the loop forces an exit on the very first student ('Aliya') if name does not match, causing find_student('John') and update_marks('Rahul') to fail.",
+        "file_path": "students.py",
+        "line_start": 25,
+        "line_end": 30,
+        "origin_line": 25,
+        "crash_line": 29,
+        "trigger_input": {"name": "John"},
+        "failure_type": "logic_flaw",
+        "category": "logic",
+        "state": "confirmed",
+        "severity": "high",
+        "severity_score": 8.0,
+        "confidence_score": 95.0,
+        "priority_rank": 1,
+        "verification_level": "V4",
+        "root_cause": {
+            "summary": "Premature exit in student lookup loop returning None on first non-match.",
+            "trigger_input": {"name": "John"},
+            "beginner": "The search stops at the first student instead of checking all students in the list.",
+            "developer": "Loop body has an unconditional else branch returning None, preventing traversal of remaining elements.",
+            "manager": "Corrected lookup algorithm allowing full directory scan and reliable student searches.",
+        },
+        "blast_radius": {
+            "functions": ["find_student", "update_marks"],
+            "tests": ["test_students.py::test_find_student_non_first"],
+            "files": ["students.py"],
+        },
+    },
 ]
 
 DEMO_PATCHES: list[dict[str, Any]] = [
@@ -311,16 +407,26 @@ DEMO_PATCHES: list[dict[str, Any]] = [
             "     return percentage\n"
         ),
         "original_code": (
+            "# Student Marks Percentage Calculator\n"
+            "def get_input(raw_marks):\n"
+            "    return float(raw_marks)\n\n"
             "def calculate_percentage(marks: float, total: float = 100.0) -> float:\n"
+            "    # Origin line: bad input accepted on line 5\n"
+            "    # Crash line: line 12 evaluates without boundary assertion\n"
             "    percentage = (marks / total) * 100.0\n"
-            "    return percentage"
+            "    return percentage\n"
         ),
         "patched_code": (
+            "# Student Marks Percentage Calculator\n"
+            "def get_input(raw_marks):\n"
+            "    return float(raw_marks)\n\n"
             "def calculate_percentage(marks: float, total: float = 100.0) -> float:\n"
+            "    # Origin line: bad input accepted on line 5\n"
+            "    # Crash line: line 12 evaluates without boundary assertion\n"
             "    if not (0.0 <= marks <= total):\n"
             "        raise ValueError('Marks must be between 0.0 and total')\n"
             "    percentage = (marks / total) * 100.0\n"
-            "    return percentage"
+            "    return percentage\n"
         ),
         "reason": "Add explicit ValueError precondition bounds check before percentage calculation.",
         "risk_level": "low",
@@ -359,5 +465,137 @@ DEMO_PATCHES: list[dict[str, Any]] = [
             "static_scan_clean": True,
             "verification_ladder": "V4 Proven",
         },
-    }
+    },
+    {
+        "id": "demo-patch-005",
+        "bug_id": "demo-bug-007",
+        "candidate_no": 1,
+        "diff": (
+            "--- a/students.py\n"
+            "+++ b/students.py\n"
+            "@@ -25,6 +25,5 @@\n"
+            " def find_student(name):\n"
+            "     for student in students:\n"
+            "         if student[\"name\"] == name:\n"
+            "             return student\n"
+            "-        else:\n"
+            "-            return None\n"
+            "+    return None\n"
+        ),
+        "original_code": (
+            "students = []\n\n"
+            "def add_student(name, age, marks):\n"
+            "    student = {\n"
+            "        \"name\": name,\n"
+            "        \"age\": age,\n"
+            "        \"marks\": marks\n"
+            "    }\n"
+            "    students.append(student)\n"
+            "    print(\"Student added successfully\")\n\n\n"
+            "def calculate_average():\n"
+            "    total = 0\n\n"
+            "    for student in students:\n"
+            "        total += student[\"marks\"]\n\n"
+            "    average = total / len(students)\n"
+            "    return average\n\n\n"
+            "def find_student(name):\n"
+            "    for student in students:\n"
+            "        if student[\"name\"] == name:\n"
+            "            return student\n"
+            "        else:\n"
+            "            return None\n\n\n"
+            "def update_marks(name, new_marks):\n"
+            "    student = find_student(name)\n\n"
+            "    if student:\n"
+            "        student[\"marks\"] = new_marks\n"
+            "        print(\"Marks updated\")\n"
+            "    else:\n"
+            "        print(\"Student not found\")\n\n\n"
+            "def get_topper():\n"
+            "    topper = students[0]\n\n"
+            "    for student in students:\n"
+            "        if student[\"marks\"] > topper[\"marks\"]:\n"
+            "            topper = student\n\n"
+            "    return topper\n\n\n"
+            "def display_students():\n"
+            "    for student in students:\n"
+            "        print(\"Name:\", student[\"name\"])\n"
+            "        print(\"Age:\", student[\"age\"])\n"
+            "        print(\"Marks:\", student[\"marks\"])\n\n\n"
+            "# Main program\n"
+            "add_student(\"Aliya\", 20, 85)\n"
+            "add_student(\"Rahul\", -5, 90)\n"
+            "add_student(\"John\", 21, 75)\n\n"
+            "print(\"Average:\", calculate_average())\n\n"
+            "print(\"Search result:\", find_student(\"John\"))\n\n"
+            "update_marks(\"Rahul\", 95)\n\n"
+            "print(\"Topper:\", get_topper())\n\n"
+            "display_students()\n"
+        ),
+        "patched_code": (
+            "students = []\n\n"
+            "def add_student(name, age, marks):\n"
+            "    if age <= 0:\n"
+            "        raise ValueError('Age must be a positive integer')\n"
+            "    student = {\n"
+            "        \"name\": name,\n"
+            "        \"age\": age,\n"
+            "        \"marks\": marks\n"
+            "    }\n"
+            "    students.append(student)\n"
+            "    print(\"Student added successfully\")\n\n\n"
+            "def calculate_average():\n"
+            "    total = 0\n\n"
+            "    for student in students:\n"
+            "        total += student[\"marks\"]\n\n"
+            "    average = total / len(students)\n"
+            "    return average\n\n\n"
+            "def find_student(name):\n"
+            "    for student in students:\n"
+            "        if student[\"name\"] == name:\n"
+            "            return student\n"
+            "    return None\n\n\n"
+            "def update_marks(name, new_marks):\n"
+            "    student = find_student(name)\n\n"
+            "    if student:\n"
+            "        student[\"marks\"] = new_marks\n"
+            "        print(\"Marks updated\")\n"
+            "    else:\n"
+            "        print(\"Student not found\")\n\n\n"
+            "def get_topper():\n"
+            "    topper = students[0]\n\n"
+            "    for student in students:\n"
+            "        if student[\"marks\"] > topper[\"marks\"]:\n"
+            "            topper = student\n\n"
+            "    return topper\n\n\n"
+            "def display_students():\n"
+            "    for student in students:\n"
+            "        print(\"Name:\", student[\"name\"])\n"
+            "        print(\"Age:\", student[\"age\"])\n"
+            "        print(\"Marks:\", student[\"marks\"])\n\n\n"
+            "# Main program\n"
+            "add_student(\"Aliya\", 20, 85)\n"
+            "add_student(\"Rahul\", 19, 90)\n"
+            "add_student(\"John\", 21, 75)\n\n"
+            "print(\"Average:\", calculate_average())\n\n"
+            "print(\"Search result:\", find_student(\"John\"))\n\n"
+            "update_marks(\"Rahul\", 95)\n\n"
+            "print(\"Topper:\", get_topper())\n\n"
+            "display_students()\n"
+        ),
+        "reason": "Remove premature else: return None inside loop and return None after checking all student records.",
+        "risk_level": "low",
+        "rank": 1,
+        "selected": True,
+        "git_branch": "patch/bug-007-candidate-1",
+        "status": "proposed",
+        "verification_level": "V4",
+        "proof_bundle": {
+            "repro_test_passes": True,
+            "full_suite_passes": True,
+            "suite_count": 8,
+            "static_scan_clean": True,
+            "verification_ladder": "V4 Proven",
+        },
+    },
 ]
