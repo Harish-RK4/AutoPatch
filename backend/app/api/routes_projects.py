@@ -79,9 +79,12 @@ async def create_project(payload: ProjectCreate):
 
     files = []
     if payload.filename or payload.content:
+        resolved_path = payload.filename or f"snippet.{payload.language or 'py'}"
         files.append(
             {
-                "file_path": payload.filename or f"snippet.{payload.language or 'txt'}",
+                "path": resolved_path,
+                "file_path": resolved_path,
+                "language": payload.language or "python",
                 "content": payload.content or "",
                 "error_trace": payload.error_trace or "",
             }

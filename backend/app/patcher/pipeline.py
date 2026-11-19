@@ -91,7 +91,7 @@ async def run_autonomous_pipeline(
     # Step 3, 4, 5: Process detected issues
     for issue in issues[:3]:  # Process top detected flaws
         file_path = issue["file_path"]
-        target_file = next((f for f in code_files if f.get("path") == file_path), None)
+        target_file = next((f for f in code_files if (f.get("path") or f.get("file_path")) == file_path), None)
         if not target_file:
             continue
 

@@ -20,9 +20,16 @@ async def scan_project_files(files: list[dict[str, Any]]) -> dict[str, Any]:
     all_issues: list[ScanIssue] = []
 
     for f in files:
-        path = f.get("path") or f.get("filename") or "unknown"
+        path = f.get("path") or f.get("file_path") or f.get("filename") or "unknown"
         lang = (f.get("language") or "").lower()
         content = f.get("content") or ""
+
+        # Auto-detect language from extension if not explicitly set
+        if not lang or lang == "unknown":
+            if path.endswith((".py", ".pyw")):
+                lang = "python"
+            elif path.endswith((".js", ".jsx", ".ts", ".tsx")):
+                lang = "javascript"
 
         if not content or f.get("is_binary"):
             continue
