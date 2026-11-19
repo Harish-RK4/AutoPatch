@@ -6,9 +6,48 @@ Handles individual bug reports, reproduction requests, candidate generation, and
 from fastapi import APIRouter, HTTPException
 
 from app.core.config import settings
-from app.models.schemas import AskQuestionRequest, AskQuestionResponse, BugDetail, PatchDetail
+from app.models.schemas import (
+    AskQuestionRequest,
+    AskQuestionResponse,
+    BugDetail,
+    BugSummary,
+    PatchDetail,
+)
 
 router = APIRouter(prefix="/bugs", tags=["bugs"])
+
+
+@router.get("", response_model=list[BugSummary])
+async def list_all_bugs(filter_mode: str = "all"):
+    """
+    Lists all active bugs.
+    In Phase P0 mock mode, user projects return 0 bugs (no fake data).
+    Demo fixtures return seeded reproducible bugs.
+    """
+    if filter_mode == "user":
+        return []
+    if settings.DEMO_MODE and filter_mode in ("all", "demo"):
+        from app.demo.seed_data import DEMO_BUGS
+
+        return [
+            BugSummary(
+                id=b["id"],
+                project_id=b["project_id"],
+                title=b["title"],
+                file_path=b["file_path"],
+                line_start=b["line_start"],
+                line_end=b["line_end"],
+                origin_line=b.get("origin_line"),
+                crash_line=b.get("crash_line"),
+                category=b["category"],
+                severity=b["severity"],
+                confidence_score=b["confidence_score"],
+                verification_level=b["verification_level"],
+                state=b["state"],
+            )
+            for b in DEMO_BUGS
+        ]
+    return []
 
 
 @router.get("/{bug_id}", response_model=BugDetail)

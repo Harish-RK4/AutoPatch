@@ -261,8 +261,8 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-[50vh] flex items-center justify-center text-xs font-mono text-[#57534E] dark:text-[#D6D3D1]">
-          Loading sign-in...
+        <div className="min-h-[85vh] flex items-center justify-center text-xs font-mono text-[#57534E] dark:text-[#D6D3D1]">
+          Loading authentication...
         </div>
       }
     >

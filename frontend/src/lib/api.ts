@@ -149,6 +149,124 @@ export async function fetchProject(projectId: string): Promise<ProjectData | nul
   return all.find((p) => p.id === projectId) || null;
 }
 
+export interface BugSummaryData {
+  id: string;
+  project_id: string;
+  title: string;
+  file_path: string;
+  line_start: number;
+  line_end: number;
+  origin_line?: number;
+  crash_line?: number;
+  category: string;
+  severity: string;
+  confidence_score: number;
+  verification_level: "V0" | "V1" | "V2" | "V3" | "V4";
+  state: string;
+}
+
+export async function fetchAllBugs(mode: "all" | "user" | "demo" = "all"): Promise<BugSummaryData[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/bugs?filter_mode=${mode}`, { cache: "no-store" });
+    if (res.ok) return await res.json();
+  } catch (err) {}
+
+  if (mode === "user") return [];
+
+  return [
+    {
+      id: "demo-bug-001",
+      project_id: "demo-proj-001",
+      title: "Missing bounds validation on student marks",
+      file_path: "calculator.py",
+      line_start: 5,
+      line_end: 12,
+      origin_line: 5,
+      crash_line: 12,
+      category: "logic",
+      severity: "high",
+      confidence_score: 100.0,
+      verification_level: "V4",
+      state: "confirmed"
+    },
+    {
+      id: "demo-bug-002",
+      project_id: "demo-proj-002",
+      title: "Cannot read property 'split' of undefined",
+      file_path: "userDirectory.js",
+      line_start: 2,
+      line_end: 4,
+      origin_line: 2,
+      crash_line: 3,
+      category: "type_error",
+      severity: "high",
+      confidence_score: 95.0,
+      verification_level: "V4",
+      state: "confirmed"
+    },
+    {
+      id: "demo-bug-003",
+      project_id: "demo-proj-003",
+      title: "Off-by-one null byte buffer overflow",
+      file_path: "buffer.c",
+      line_start: 3,
+      line_end: 7,
+      origin_line: 4,
+      crash_line: 6,
+      category: "memory",
+      severity: "critical",
+      confidence_score: 85.0,
+      verification_level: "V3",
+      state: "confirmed"
+    },
+    {
+      id: "demo-bug-004",
+      project_id: "demo-proj-004",
+      title: "Negative score anomaly and malformed date format",
+      file_path: "grades.csv",
+      line_start: 2,
+      line_end: 4,
+      origin_line: 2,
+      crash_line: 3,
+      category: "dataset",
+      severity: "medium",
+      confidence_score: 80.0,
+      verification_level: "V3",
+      state: "confirmed"
+    },
+    {
+      id: "demo-bug-005",
+      project_id: "demo-proj-001",
+      title: "Floating-point precision rounding variance in GPA aggregation",
+      file_path: "calculator.py",
+      line_start: 18,
+      line_end: 22,
+      origin_line: 18,
+      crash_line: 21,
+      category: "arithmetic",
+      severity: "low",
+      confidence_score: 65.0,
+      verification_level: "V2",
+      state: "confirmed"
+    },
+    {
+      id: "demo-bug-006",
+      project_id: "demo-proj-002",
+      title: "Prototype pollution via unvalidated object key in profile updater",
+      file_path: "userDirectory.js",
+      line_start: 12,
+      line_end: 18,
+      origin_line: 13,
+      crash_line: 16,
+      category: "security",
+      severity: "critical",
+      confidence_score: 85.0,
+      verification_level: "V3",
+      state: "confirmed"
+    }
+  ];
+}
+
 export async function fetchProjectBugs(projectId: string) {
   try {
     const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/bugs`, { cache: "no-store" });

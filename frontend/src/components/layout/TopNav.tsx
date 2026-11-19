@@ -13,7 +13,6 @@ import {
   Settings,
   Search,
   Bell,
-  User,
   CheckCircle2,
   AlertTriangle,
   GitBranch,
@@ -153,27 +152,27 @@ export function TopNav() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full px-4 sm:px-6 py-2.5 bg-white/80 dark:bg-[#0C0A09]/80 backdrop-blur-md border-b border-[#E7E5E4] dark:border-[#292524]">
+      <header className="sticky top-0 z-40 w-full px-4 sm:px-6 py-2.5 bg-white/70 dark:bg-[#0C0A09]/70 backdrop-blur-md border-b border-black/5 dark:border-white/5 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Left: Brand Identity */}
           <Link href="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-[#0F766E] dark:bg-[#14B8A6] flex items-center justify-center text-white dark:text-[#0C0A09] font-bold shadow-sm transition-transform group-hover:scale-105">
+            <div className="w-8 h-8 rounded-xl bg-[#0F766E] dark:bg-[#14B8A6] flex items-center justify-center text-white dark:text-[#0C0A09] font-bold shadow-xs transition-transform group-hover:scale-105">
               <Shield className="w-4 h-4 stroke-[2]" />
             </div>
             <div className="flex flex-col">
-              <span className="font-bold text-sm tracking-tight text-[#1C1917] dark:text-[#F5F5F4] group-hover:text-[#0F766E] dark:group-hover:text-[#14B8A6] transition-colors">
+              <span className="font-semibold text-sm tracking-tight text-[#1C1917] dark:text-[#F5F5F4] group-hover:text-[#0F766E] dark:group-hover:text-[#14B8A6] transition-colors">
                 AutoPatch
               </span>
-              <span className="text-[10px] font-mono text-[#57534E] dark:text-[#D6D3D1] -mt-1 hidden sm:inline">
+              <span className="text-[10px] font-mono text-[#78716C] dark:text-[#A8A29E] -mt-1 hidden sm:inline">
                 Autonomous Repair
               </span>
             </div>
           </Link>
 
-          {/* Center: Sleek Centered Pill Navigation Dock */}
+          {/* Center: Compact Centered Pill Navigation Dock (Reference Aesthetic) */}
           <nav
             aria-label="Primary Navigation"
-            className="hidden md:flex items-center p-1 bg-[#F5F5F4] dark:bg-[#1C1917] rounded-full border border-[#E7E5E4] dark:border-[#292524] shadow-sm"
+            className="hidden md:flex items-center p-1 bg-white/80 dark:bg-[#1C1917]/80 backdrop-blur-md rounded-full border border-black/5 dark:border-white/10 shadow-xs"
           >
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
@@ -188,14 +187,16 @@ export function TopNav() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs transition-all ${
+                  title={item.label}
+                  aria-label={item.label}
+                  className={`flex items-center transition-all ${
                     isActive
-                      ? "bg-white dark:bg-[#292524] text-[#0F766E] dark:text-[#14B8A6] font-semibold shadow-sm"
-                      : "text-[#57534E] dark:text-[#D6D3D1] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] font-medium"
+                      ? "gap-1.5 px-3 py-1 rounded-full bg-white dark:bg-[#292524] text-[#0F766E] dark:text-[#14B8A6] font-semibold text-xs shadow-xs"
+                      : "p-1.5 rounded-full text-[#78716C] dark:text-[#A8A29E] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                 >
-                  <Icon className="w-3.5 h-3.5 stroke-[1.5]" />
-                  <span>{item.label}</span>
+                  <Icon className="w-4 h-4 stroke-[1.5]" />
+                  {isActive && <span>{item.label}</span>}
                 </Link>
               );
             })}
@@ -208,13 +209,9 @@ export function TopNav() {
               type="button"
               onClick={() => setSearchOpen(true)}
               aria-label="Search AutoPatch workspace (Ctrl+K)"
-              className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#F5F5F4] dark:bg-[#1C1917] hover:bg-[#E7E5E4] dark:hover:bg-[#292524] border border-[#E7E5E4] dark:border-[#292524] text-xs text-[#57534E] dark:text-[#D6D3D1] transition-colors"
+              className="w-8 h-8 rounded-full flex items-center justify-center text-[#57534E] dark:text-[#D6D3D1] hover:bg-black/5 dark:hover:bg-white/5 border border-black/5 dark:border-white/10 transition-colors"
             >
-              <Search className="w-3.5 h-3.5 stroke-[1.5]" />
-              <span className="hidden lg:inline text-[11px]">Search...</span>
-              <kbd className="hidden sm:inline-block font-mono text-[9px] bg-white dark:bg-[#0C0A09] px-1.5 py-0.5 rounded border border-[#E7E5E4] dark:border-[#292524] text-[#57534E] dark:text-[#D6D3D1]">
-                ⌘K
-              </kbd>
+              <Search className="w-4 h-4 stroke-[1.5]" />
             </button>
 
             {/* Dark / Light Theme Toggle */}
@@ -229,13 +226,13 @@ export function TopNav() {
                   setUserMenuOpen(false);
                 }}
                 aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "View notifications"}
-                className="w-8 h-8 rounded-full flex items-center justify-center text-[#57534E] dark:text-[#D6D3D1] hover:bg-black/5 dark:hover:bg-white/5 relative border border-[#E7E5E4] dark:border-[#292524] transition-colors"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[#57534E] dark:text-[#D6D3D1] hover:bg-black/5 dark:hover:bg-white/5 relative border border-black/5 dark:border-white/10 transition-colors"
               >
                 <Bell className="w-4 h-4 stroke-[1.5]" aria-hidden="true" />
                 {unreadCount > 0 && (
                   <span
                     aria-hidden="true"
-                    className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0F766E] dark:bg-[#14B8A6] text-white dark:text-[#0C0A09] text-[9px] font-mono font-bold flex items-center justify-center shadow-sm"
+                    className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-[#0F766E] dark:bg-[#14B8A6] text-white dark:text-[#0C0A09] text-[9px] font-mono font-bold flex items-center justify-center shadow-xs"
                   >
                     {unreadCount}
                   </span>
@@ -244,7 +241,7 @@ export function TopNav() {
 
               {/* Notification Popover Dropdown */}
               {notifOpen && (
-                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-xl shadow-xl overflow-hidden z-50 text-xs">
+                <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-2xl shadow-xl overflow-hidden z-50 text-xs">
                   <div className="p-3 border-b border-[#E7E5E4] dark:border-[#292524] flex items-center justify-between bg-[#FAF9F6] dark:bg-[#1C1917]">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">
@@ -289,10 +286,10 @@ export function TopNav() {
                         }`}
                       >
                         <div className="mt-0.5 flex-shrink-0">
-                          {n.type === "scan_completed" && <CheckCircle2 className="w-4 h-4 text-[#0F766E] dark:text-[#14B8A6] stroke-[1.5]" />}
-                          {n.type === "bug_confirmed" && <AlertTriangle className="w-4 h-4 text-[#EF4444] stroke-[1.5]" />}
-                          {n.type === "patch_verified" && <CheckCircle2 className="w-4 h-4 text-[#10B981] stroke-[1.5]" />}
-                          {n.type === "review_needed" && <GitBranch className="w-4 h-4 text-[#D97706] dark:text-[#F59E0B] stroke-[1.5]" />}
+                          {n.type === "scan_completed" && <CheckCircle2 className="w-4 h-4 text-[#047857] dark:text-[#34D399] stroke-[1.5]" />}
+                          {n.type === "bug_confirmed" && <AlertTriangle className="w-4 h-4 text-[#DC2626] stroke-[1.5]" />}
+                          {n.type === "patch_verified" && <CheckCircle2 className="w-4 h-4 text-[#047857] dark:text-[#34D399] stroke-[1.5]" />}
+                          {n.type === "review_needed" && <GitBranch className="w-4 h-4 text-[#B45309] dark:text-[#FBBF24] stroke-[1.5]" />}
                         </div>
 
                         <div className="flex-1 space-y-0.5">
@@ -315,7 +312,7 @@ export function TopNav() {
               )}
             </div>
 
-            {/* User Avatar & Menu */}
+            {/* Circular User Avatar & Menu */}
             <div className="relative">
               {user ? (
                 <button
@@ -325,19 +322,14 @@ export function TopNav() {
                     setNotifOpen(false);
                   }}
                   aria-label="User account menu"
-                  className="flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-[#F5F5F4] dark:bg-[#1C1917] border border-[#E7E5E4] dark:border-[#292524] text-xs text-[#1C1917] dark:text-[#F5F5F4] hover:bg-[#E7E5E4] dark:hover:bg-[#292524] transition-colors"
+                  className="w-8 h-8 rounded-full bg-[#0F766E] text-white flex items-center justify-center text-xs font-bold shadow-xs hover:ring-2 hover:ring-[#0F766E]/20 transition-all"
                 >
-                  <div className="w-5 h-5 rounded-full bg-[#0F766E] text-white flex items-center justify-center text-[10px] font-bold">
-                    {(user.name || user.fullName || "U").charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-[11px] font-medium hidden sm:inline">
-                    {(user.name || user.fullName || "User").split(" ")[0]}
-                  </span>
+                  {(user.name || user.fullName || "D").charAt(0).toUpperCase()}
                 </button>
               ) : (
                 <Link
                   href="/login"
-                  className="px-3 py-1 rounded-full bg-[#0F766E] dark:bg-[#14B8A6] text-white dark:text-[#0C0A09] text-xs font-semibold hover:bg-[#115E59] dark:hover:bg-[#0D9488] transition-colors"
+                  className="px-3.5 py-1 rounded-full bg-[#0F766E] dark:bg-[#14B8A6] text-white dark:text-[#0C0A09] text-xs font-semibold hover:bg-[#115E59] dark:hover:bg-[#0D9488] transition-colors"
                 >
                   Sign In
                 </Link>
@@ -345,11 +337,9 @@ export function TopNav() {
 
               {/* User Menu Dropdown */}
               {userMenuOpen && user && (
-                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-xl shadow-xl overflow-hidden z-50 text-xs">
+                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-2xl shadow-xl overflow-hidden z-50 text-xs">
                   <div className="p-3 border-b border-[#E7E5E4] dark:border-[#292524] bg-[#FAF9F6] dark:bg-[#1C1917]">
-                    <div className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">
-                      {user.name || user.fullName}
-                    </div>
+                    <div className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">{user.name || user.fullName}</div>
                     <div className="text-[11px] font-mono text-[#57534E] dark:text-[#D6D3D1] truncate">{user.email}</div>
                     <div className="mt-1.5 inline-block text-[9px] font-mono px-1.5 py-0.5 rounded bg-[#0F766E]/10 text-[#0F766E] dark:text-[#14B8A6] font-semibold uppercase">
                       {user.role}
@@ -367,7 +357,7 @@ export function TopNav() {
                     <button
                       type="button"
                       onClick={handleSignOut}
-                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-[#EF4444] hover:bg-[#EF4444]/10 transition-colors text-left"
+                      className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-[#DC2626] hover:bg-[#DC2626]/10 transition-colors text-left"
                     >
                       <LogOut className="w-3.5 h-3.5 stroke-[1.5]" />
                       <span>Sign Out</span>
@@ -379,7 +369,7 @@ export function TopNav() {
           </div>
         </div>
 
-        {/* Mobile Navigation Bar */}
+        {/* Mobile Navigation Dock */}
         <div className="md:hidden flex items-center justify-around gap-1 pt-2 mt-2 border-t border-[#E7E5E4] dark:border-[#292524] overflow-x-auto">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;

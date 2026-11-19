@@ -25,7 +25,34 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="space-y-16 pb-12 pt-4">
+    <div className="space-y-16 pb-12">
+      {/* Top Navigation Bar inside Landing Page */}
+      <header className="flex items-center justify-between pb-4 border-b border-[#E7E5E4] dark:border-[#292524]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-lg bg-[#0F766E] dark:bg-[#14B8A6] flex items-center justify-center text-white dark:text-[#0C0A09]">
+            <ShieldCheck className="w-5 h-5 stroke-[1.5]" />
+          </div>
+          <div>
+            <span className="font-semibold text-base tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
+              AutoPatch
+            </span>
+            <span className="hidden sm:inline-block ml-2 text-xs font-mono px-2 py-0.5 rounded bg-[#FAF9F6] dark:bg-[#1C1917] text-[#57534E] dark:text-[#D6D3D1] border border-[#E7E5E4] dark:border-[#292524]">
+              Build for Trust
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          <Link href="/login" className="text-xs font-medium text-[#57534E] dark:text-[#D6D3D1] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] px-3 py-1.5 transition-colors">
+            Sign In / Sign Up
+          </Link>
+          <Button variant="primary" size="sm" onClick={handleLaunchDemo}>
+            <Play className="w-3.5 h-3.5 mr-1.5 fill-current stroke-[1.5]" />
+            Launch Demo
+          </Button>
+        </div>
+      </header>
 
       {/* Hero Section */}
       <section className="text-center max-w-3xl mx-auto space-y-6 pt-4">

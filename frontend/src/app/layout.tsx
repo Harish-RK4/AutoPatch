@@ -15,8 +15,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-[#FAF8F5] dark:bg-[#0C0A09] text-[#1C1917] dark:text-[#F5F5F4] min-h-screen flex flex-col font-sans antialiased selection:bg-[#0F766E]/20 selection:text-[#0F766E] dark:selection:bg-[#14B8A6]/20 dark:selection:text-[#14B8A6]">
+    <html lang="en" suppressHydrationWarning>
+      <body className="bg-[#F4F2ED] dark:bg-[#0C0A09] text-[#1C1917] dark:text-[#F5F5F4] min-h-screen flex flex-col font-sans antialiased selection:bg-[#0F766E]/20 selection:text-[#0F766E] dark:selection:bg-[#14B8A6]/20 dark:selection:text-[#14B8A6]">
         {/* Environment status banner */}
         <EnvironmentBanner />
 

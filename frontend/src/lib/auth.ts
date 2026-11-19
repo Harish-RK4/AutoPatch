@@ -15,8 +15,8 @@ export interface AuthUser {
 export const DEMO_USER: AuthUser = {
   id: "demo-user-001",
   email: "demo@autopatch.dev",
-  fullName: "Aisha Sharma",
-  name: "Aisha Sharma",
+  fullName: "Demo Developer",
+  name: "Demo Developer",
   role: "developer",
   isDemo: true
 };
@@ -28,11 +28,7 @@ export class AuthManager {
     if (typeof window === "undefined") return null;
     try {
       const stored = localStorage.getItem(SESSION_KEY);
-      if (stored) {
-        const u = JSON.parse(stored);
-        if (!u.name && u.fullName) u.name = u.fullName;
-        return u;
-      }
+      if (stored) return JSON.parse(stored);
     } catch (e) {}
     return null;
   }
@@ -44,12 +40,10 @@ export class AuthManager {
     // Simple client authentication for testing phase
     if (email && pass && pass.length >= 4) {
       const name = email.split("@")[0];
-      const capitalized = name.charAt(0).toUpperCase() + name.slice(1);
       const user: AuthUser = {
         id: `user-${Date.now().toString(36)}`,
         email,
-        fullName: capitalized,
-        name: capitalized,
+        fullName: name.charAt(0).toUpperCase() + name.slice(1),
         role: "developer",
         isDemo: false
       };
@@ -64,12 +58,10 @@ export class AuthManager {
 
   static signUp(fullName: string, email: string, pass: string): AuthUser | null {
     if (email && pass && pass.length >= 4) {
-      const display = fullName || email.split("@")[0];
       const user: AuthUser = {
         id: `user-${Date.now().toString(36)}`,
         email,
-        fullName: display,
-        name: display,
+        fullName: fullName || email.split("@")[0],
         role: "developer",
         isDemo: false
       };
@@ -105,3 +97,4 @@ export class AuthManager {
     return this.getSession() !== null;
   }
 }
+
