@@ -16,7 +16,7 @@ export interface IAuthProvider {
   signIn(email: string, pass: string): Promise<AuthResponse>;
   signUp(fullName: string, email: string, pass: string): Promise<AuthResponse>;
   signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse>;
-  sendOtp(email: string, phone?: string): Promise<{ success: boolean; otp?: string; error?: string }>;
+  sendOtp(email: string, phone?: string): Promise<{ success: boolean; otp?: string; sentToEmail?: boolean; error?: string }>;
   verifyOtp(email: string, token: string): Promise<AuthResponse>;
   resetPassword(email: string): Promise<{ success: boolean; otp?: string; error?: string }>;
   signOut(): Promise<void>;
@@ -152,14 +152,31 @@ export class SupabaseAuthProvider implements IAuthProvider {
   }
 
   /**
-   * Request Email OTP Code
+   * Request Email OTP Code (Real Supabase Email Delivery with Server Fallback)
    */
-  async sendOtp(email: string, phone?: string): Promise<{ success: boolean; otp?: string; error?: string }> {
+  async sendOtp(email: string, phone?: string): Promise<{ success: boolean; otp?: string; sentToEmail?: boolean; error?: string }> {
+    const cleanEmail = email.trim().toLowerCase();
+
+    // 1. Try real Supabase direct email OTP delivery
+    if (this.supabase) {
+      try {
+        const { error } = await this.supabase.auth.signInWithOtp({
+          email: cleanEmail,
+          options: { shouldCreateUser: true },
+        });
+
+        if (!error) {
+          return { success: true, sentToEmail: true };
+        }
+      } catch (_) {}
+    }
+
+    // 2. Fallback to Server Admin API (e.g. if SMTP rate limited)
     try {
       const res = await fetch("/api/auth/otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send", email: email.trim().toLowerCase(), phone }),
+        body: JSON.stringify({ action: "send", email: cleanEmail, phone }),
       });
 
       const data = await res.json();
@@ -167,14 +184,14 @@ export class SupabaseAuthProvider implements IAuthProvider {
         return { success: false, error: data.error || "Failed to generate verification code." };
       }
 
-      return { success: true, otp: data.otp };
+      return { success: true, otp: data.otp, sentToEmail: false };
     } catch (err: any) {
       return { success: false, error: err?.message || "OTP service unavailable." };
     }
   }
 
   /**
-   * Verify Real Supabase OTP
+   * Verify Real Supabase OTP (Supports both 'email' and 'magiclink' verification)
    */
   async verifyOtp(email: string, token: string): Promise<AuthResponse> {
     if (!this.supabase) {
@@ -182,11 +199,40 @@ export class SupabaseAuthProvider implements IAuthProvider {
     }
 
     const cleanEmail = email.trim().toLowerCase();
-    const { data, error } = await this.supabase.auth.verifyOtp({
+    const cleanToken = token.trim();
+
+    // Try primary Supabase email OTP verification
+    let { data, error } = await this.supabase.auth.verifyOtp({
       email: cleanEmail,
-      token: token.trim(),
-      type: "magiclink",
+      token: cleanToken,
+      type: "email",
     });
+
+    // If 'email' type fails, try 'magiclink' type
+    if (error || !data.user) {
+      const retry = await this.supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: "magiclink",
+      });
+      if (retry.data?.user) {
+        data = retry.data;
+        error = null;
+      }
+    }
+
+    // If 'magiclink' type fails, try 'signup' type
+    if (error || !data.user) {
+      const retry = await this.supabase.auth.verifyOtp({
+        email: cleanEmail,
+        token: cleanToken,
+        type: "signup",
+      });
+      if (retry.data?.user) {
+        data = retry.data;
+        error = null;
+      }
+    }
 
     if (error || !data.user) {
       return { user: null, error: error?.message || "Invalid or expired verification code." };

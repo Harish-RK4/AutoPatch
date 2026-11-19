@@ -69,8 +69,6 @@ export default function DashboardPage() {
   }, [filterMode]);
 
   const handleLaunchDemo = () => {
-    AuthManager.loginDemo();
-    setUser(AuthManager.getSession());
     setFilterMode("all");
     loadData("all");
   };

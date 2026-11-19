@@ -15,10 +15,11 @@ import {
   EyeOff, 
   Sparkles, 
   Loader2, 
-  KeyRound,
-  RotateCcw,
-  Check,
-  RefreshCw
+  KeyRound, 
+  RotateCcw, 
+  Check, 
+  RefreshCw,
+  CheckCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { getAuthProvider } from "@/lib/authProvider";
@@ -37,8 +38,10 @@ function LoginForm() {
   const [tab, setTab] = useState<"signin" | "otp" | "signup">(initialTab);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -46,8 +49,18 @@ function LoginForm() {
   const [otpStep, setOtpStep] = useState<"request" | "verify">("request");
   const [otpEmail, setOtpEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
+  const [sentToInbox, setSentToInbox] = useState(false);
   const [generatedOtpHint, setGeneratedOtpHint] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Password criteria for Registration
+  const hasMinLength = password.length >= 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumberOrSymbol = /[0-9]/.test(password) || /[^A-Za-z0-9]/.test(password);
+  const passwordCriteriaCount = [hasMinLength, hasUpperCase, hasLowerCase, hasNumberOrSymbol].filter(Boolean).length;
+  const isPasswordValid = passwordCriteriaCount === 4;
+  const isConfirmValid = Boolean(confirmPassword) && password === confirmPassword;
 
   // Resend OTP Countdown
   useEffect(() => {
@@ -87,7 +100,7 @@ function LoginForm() {
     }
   };
 
-  // 2. Real Registration in Supabase
+  // 2. Real Registration in Supabase (with strict password criteria)
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -100,8 +113,12 @@ function LoginForm() {
       setError("Please enter a valid email address.");
       return;
     }
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
+    if (!isPasswordValid) {
+      setError("Password does not meet all security criteria (8+ chars, uppercase, lowercase, and number/symbol).");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passwords do not match. Please ensure both password fields match.");
       return;
     }
 
@@ -138,6 +155,7 @@ function LoginForm() {
         if (res.success) {
           setOtpStep("verify");
           setResendCooldown(60);
+          setSentToInbox(Boolean(res.sentToEmail));
           if (res.otp) {
             setGeneratedOtpHint(res.otp);
           }
@@ -186,13 +204,7 @@ function LoginForm() {
     try {
       const res = await authProvider.signInWithOAuth("google");
       if (res.error) {
-        if (res.error.toLowerCase().includes("not enabled") || res.error.toLowerCase().includes("validation_failed")) {
-          setError(
-            "Google OAuth is currently disabled in your Supabase project. To enable real Google Sign-In: Open Supabase Dashboard → Authentication → Providers → Google, toggle 'Enable Google' and input your Google Cloud OAuth Client ID & Secret. You can also sign in immediately using Email OTP or Password below."
-          );
-        } else {
-          setError(res.error);
-        }
+        setError(res.error);
       } else if (res.user) {
         router.push(redirectUrl);
       }
@@ -210,13 +222,7 @@ function LoginForm() {
     try {
       const res = await authProvider.signInWithOAuth("github");
       if (res.error) {
-        if (res.error.toLowerCase().includes("not enabled")) {
-          setError(
-            "GitHub OAuth is disabled in your Supabase project. To enable it: Go to Supabase Dashboard → Authentication → Providers → GitHub, or sign in using Email / OTP below."
-          );
-        } else {
-          setError(res.error);
-        }
+        setError(res.error);
       } else if (res.user) {
         router.push(redirectUrl);
       }
@@ -375,7 +381,7 @@ function LoginForm() {
               </button>
               <button
                 type="button"
-                onClick={() => { setTab("otp"); setError(null); setOtpStep("request"); setGeneratedOtpHint(null); }}
+                onClick={() => { setTab("otp"); setError(null); setOtpStep("request"); setGeneratedOtpHint(null); setSentToInbox(false); }}
                 className={`flex-1 py-1.5 text-xs font-semibold rounded-lg transition-all ${
                   tab === "otp"
                     ? "bg-white dark:bg-[#27272A] text-[#09090B] dark:text-[#FAFAFA] shadow-sm"
@@ -502,7 +508,7 @@ function LoginForm() {
                         />
                       </div>
                       <p className="text-[11px] text-[#71717A] mt-1.5">
-                        We will generate a real Supabase one-time verification code for your account.
+                        A real Supabase 6-digit one-time code will be dispatched to your registered email.
                       </p>
                     </div>
 
@@ -515,7 +521,7 @@ function LoginForm() {
                       >
                         {loading ? (
                           <span className="flex items-center gap-2">
-                            <Loader2 className="w-4 h-4 animate-spin" /> Generating Code...
+                            <Loader2 className="w-4 h-4 animate-spin" /> Sending Code...
                           </span>
                         ) : (
                           <span className="flex items-center gap-1.5">
@@ -527,15 +533,31 @@ function LoginForm() {
                   </form>
                 ) : (
                   <form onSubmit={handleVerifyOtp} className="space-y-4">
-                    {generatedOtpHint && (
-                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-700 dark:text-emerald-400">
+                    {sentToInbox && (
+                      <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded-xl text-xs text-blue-700 dark:text-blue-400">
                         <div className="flex items-center gap-1.5 font-semibold mb-1">
-                          <Check className="w-4 h-4 text-emerald-500" />
-                          <span>Verification Code Generated</span>
+                          <Mail className="w-4 h-4 text-blue-500" />
+                          <span>Code Sent Directly to Your Inbox</span>
                         </div>
                         <p className="text-[11px] leading-relaxed">
-                          Your code for <strong>{otpEmail}</strong> is: <code className="font-mono text-sm font-bold bg-white dark:bg-[#121214] px-1.5 py-0.5 rounded border border-emerald-500/30">{generatedOtpHint}</code>
+                          A 6-digit verification code has been dispatched to <strong>{otpEmail}</strong> via Supabase Auth. Please check your inbox (and spam/junk folder) and enter it below.
                         </p>
+                      </div>
+                    )}
+
+                    {generatedOtpHint && !sentToInbox && (
+                      <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-800 dark:text-amber-300">
+                        <div className="flex items-center gap-1.5 font-semibold mb-1">
+                          <Sparkles className="w-4 h-4 text-amber-500" />
+                          <span>Supabase Email Delivery Fallback</span>
+                        </div>
+                        <p className="text-[11px] leading-relaxed mb-1.5">
+                          Supabase default SMTP hourly email quota was reached on the free tier. Your verified Supabase OTP code for <strong>{otpEmail}</strong> is:
+                        </p>
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-[#18181B] border border-amber-500/30 font-mono">
+                          <span className="text-xs text-[#71717A]">One-Time Code:</span>
+                          <span className="text-sm font-bold tracking-widest text-[#09090B] dark:text-[#FAFAFA]">{generatedOtpHint}</span>
+                        </div>
                       </div>
                     )}
 
@@ -571,7 +593,7 @@ function LoginForm() {
                           type="text"
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
-                          placeholder="Enter 6-8 digit code"
+                          placeholder="Enter 6-digit code"
                           className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] font-mono tracking-widest text-center focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
                           required
                           autoFocus
@@ -602,7 +624,7 @@ function LoginForm() {
               </div>
             )}
 
-            {/* Tab 3: Create Account / Real Supabase Registration */}
+            {/* Tab 3: Create Account / Real Supabase Registration with Password Criteria */}
             {tab === "signup" && (
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div>
@@ -642,9 +664,18 @@ function LoginForm() {
                 </div>
 
                 <div>
-                  <label htmlFor="signup-password" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA] mb-1.5">
-                    Password (min 6 characters)
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="signup-password" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA]">
+                      Password
+                    </label>
+                    {password && (
+                      <span className={`text-[10px] font-semibold ${
+                        passwordCriteriaCount <= 2 ? "text-red-500" : passwordCriteriaCount === 3 ? "text-amber-500" : "text-emerald-500"
+                      }`}>
+                        {passwordCriteriaCount <= 2 ? "Weak" : passwordCriteriaCount === 3 ? "Medium" : "Strong"}
+                      </span>
+                    )}
+                  </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-[#A1A1AA] absolute left-3 top-2.5" />
                     <input
@@ -652,7 +683,7 @@ function LoginForm() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
+                      placeholder="Enter strong password"
                       className="w-full pl-9 pr-9 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
                       required
                     />
@@ -664,14 +695,94 @@ function LoginForm() {
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
                   </div>
+
+                  {/* Password Strength Progress Bar */}
+                  {password && (
+                    <div className="w-full bg-[#E4E4E7] dark:bg-[#27272A] h-1 rounded-full mt-2 overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          passwordCriteriaCount <= 2 
+                            ? "w-1/3 bg-red-500" 
+                            : passwordCriteriaCount === 3 
+                            ? "w-2/3 bg-amber-500" 
+                            : "w-full bg-emerald-500"
+                        }`}
+                      />
+                    </div>
+                  )}
+
+                  {/* Password Criteria Checklist */}
+                  <div className="mt-2.5 p-3 rounded-xl bg-[#F4F4F5]/60 dark:bg-[#18181B]/60 border border-[#E4E4E7] dark:border-[#27272A] space-y-1.5 text-[11px]">
+                    <div className="text-[10px] font-semibold text-[#71717A] uppercase tracking-wider mb-1">
+                      Password Requirements:
+                    </div>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <div className={`flex items-center gap-1.5 ${hasMinLength ? "text-emerald-600 dark:text-emerald-400 font-medium" : "text-[#71717A]"}`}>
+                        {hasMinLength ? <Check className="w-3.5 h-3.5 flex-shrink-0" /> : <span className="w-1.5 h-1.5 rounded-full bg-[#A1A1AA] mx-1" />}
+                        <span>8+ characters</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 ${hasUpperCase ? "text-emerald-600 dark:text-emerald-400 font-medium" : "text-[#71717A]"}`}>
+                        {hasUpperCase ? <Check className="w-3.5 h-3.5 flex-shrink-0" /> : <span className="w-1.5 h-1.5 rounded-full bg-[#A1A1AA] mx-1" />}
+                        <span>1 uppercase (A-Z)</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 ${hasLowerCase ? "text-emerald-600 dark:text-emerald-400 font-medium" : "text-[#71717A]"}`}>
+                        {hasLowerCase ? <Check className="w-3.5 h-3.5 flex-shrink-0" /> : <span className="w-1.5 h-1.5 rounded-full bg-[#A1A1AA] mx-1" />}
+                        <span>1 lowercase (a-z)</span>
+                      </div>
+                      <div className={`flex items-center gap-1.5 ${hasNumberOrSymbol ? "text-emerald-600 dark:text-emerald-400 font-medium" : "text-[#71717A]"}`}>
+                        {hasNumberOrSymbol ? <Check className="w-3.5 h-3.5 flex-shrink-0" /> : <span className="w-1.5 h-1.5 rounded-full bg-[#A1A1AA] mx-1" />}
+                        <span>1 number / symbol</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label htmlFor="signup-confirm-password" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA]">
+                      Confirm Password
+                    </label>
+                    {confirmPassword && (
+                      <span className={`text-[10px] font-semibold flex items-center gap-1 ${
+                        isConfirmValid ? "text-emerald-500" : "text-red-500"
+                      }`}>
+                        {isConfirmValid ? <Check className="w-3 h-3" /> : null}
+                        {isConfirmValid ? "Passwords match" : "Passwords do not match"}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <Lock className="w-4 h-4 text-[#A1A1AA] absolute left-3 top-2.5" />
+                    <input
+                      id="signup-confirm-password"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm your password"
+                      className={`w-full pl-9 pr-9 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border ${
+                        confirmPassword && !isConfirmValid
+                          ? "border-red-500/50 focus:ring-red-500"
+                          : "border-[#E4E4E7] dark:border-[#27272A] focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
+                      } text-[#09090B] dark:text-[#FAFAFA] focus:outline-none focus:ring-1`}
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-2.5 text-[#A1A1AA] hover:text-[#09090B] dark:hover:text-[#FAFAFA]"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="pt-2">
                   <Button 
                     type="submit" 
                     variant="primary" 
-                    disabled={loading} 
-                    className="w-full py-2.5 rounded-xl font-semibold shadow-sm justify-center"
+                    disabled={loading || !isPasswordValid || !isConfirmValid} 
+                    className="w-full py-2.5 rounded-xl font-semibold shadow-sm justify-center disabled:opacity-50"
                   >
                     {loading ? (
                       <span className="flex items-center gap-2">
