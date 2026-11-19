@@ -20,8 +20,9 @@ def test_supabase_repo_initialization():
 
 
 @pytest.mark.asyncio
-async def test_supabase_graceful_degradation():
+async def test_supabase_graceful_degradation(monkeypatch):
     repo = SupabaseRepository()
+    monkeypatch.setattr(repo, "is_enabled", False)
     # In demo/unconfigured state, insert_record should not crash and return the record
     sample_record = {"name": "Test Project", "source_type": "upload"}
     res = await repo.insert_record("projects", sample_record)
@@ -30,6 +31,7 @@ async def test_supabase_graceful_degradation():
     # fetch_records should return empty list gracefully
     records = await repo.fetch_records("projects")
     assert isinstance(records, list)
+    assert records == []
 
 
 @pytest.mark.asyncio

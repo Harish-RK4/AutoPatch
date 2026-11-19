@@ -21,13 +21,16 @@ from app.api.routes_webhook import router as webhook_router
 from app.core.config import settings
 from app.core.queue import job_queue
 
+import os
 import sys
 from pathlib import Path
 
-# Ensure project root is in sys.path for autopatch_voice_brain
+# Ensure project root and backend root are in sys.path for autopatch_voice_brain
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
-if str(ROOT_DIR) not in sys.path:
-    sys.path.insert(0, str(ROOT_DIR))
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+for search_path in (str(ROOT_DIR), str(BACKEND_DIR)):
+    if search_path not in sys.path:
+        sys.path.insert(0, search_path)
 
 from autopatch_voice_brain import autopatch_voice_router
 
@@ -47,10 +50,21 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# CORS Middleware allowing frontend development access
+# Dynamic CORS Configuration for local development and cloud production (Vercel)
+default_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+extra_origins = os.getenv("ALLOWED_ORIGINS", "")
+if extra_origins:
+    default_origins.extend([origin.strip() for origin in extra_origins.split(",") if origin.strip()])
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=default_origins,
+    allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

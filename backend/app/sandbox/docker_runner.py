@@ -139,7 +139,13 @@ class DockerSandboxRunner(SandboxRunner):
         test_code: str | None = None,
         timeout_sec: float = 30.0,
     ) -> ExecutionResult:
-        """Execute source code in the Docker container."""
+        """Execute source code in the Docker container, falling back to local runner if Docker is unavailable."""
+        if not self.is_docker_available():
+            from app.sandbox.local_runner import LocalSubprocessSandboxRunner
+            return LocalSubprocessSandboxRunner().execute_code(
+                language, code, test_code=test_code, timeout_sec=timeout_sec
+            )
+
         # Delegates to run_command with temporary mount
         import tempfile
 
