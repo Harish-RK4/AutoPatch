@@ -84,6 +84,12 @@ class BugDetail(BugSummary):
     priority_rank: int
     root_cause: dict[str, Any]
     blast_radius: dict[str, Any]
+    stack_trace: str | None = None
+    stack_frames: list[dict[str, Any]] = Field(default_factory=list)
+    execution_trace: list[dict[str, Any]] = Field(default_factory=list)
+    backward_slice: list[dict[str, Any]] = Field(default_factory=list)
+    hunk_cards: list[dict[str, Any]] = Field(default_factory=list)
+    is_hypothesis: bool = False
     patches: list[PatchDetail] = Field(default_factory=list)
 
 
