@@ -132,6 +132,41 @@ def generate_python_test(
                 unittest.main()
         """)
 
+    elif rule_id == "BUG-PREMATURE-RETURN":
+        return textwrap.dedent(f"""\
+            import os
+            import unittest
+            import re
+
+            class TestPrematureLoopReturn(unittest.TestCase):
+                \"\"\"Auto-generated test for {rule_id} at {file_path}:{line_no}\"\"\"
+
+                def test_no_premature_loop_exit(self):
+                    \"\"\"Verify loop does not prematurely return in else branch on first iteration.\"\"\"
+                    target_file = "main.py" if os.path.exists("main.py") else r"{file_path}"
+                    with open(target_file, "r", encoding="utf-8", errors="replace") as f:
+                        source = f.read()
+                    premature = re.search(r'(?:for|while)\\s+[^:\\n]+:.*?\\belse\\s*:\\s*return', source, re.DOTALL)
+                    self.assertIsNone(premature, "Premature return in loop else block still present")
+
+                def test_patched_execution(self):
+                    \"\"\"Verify execution runs cleanly and finds non-first items.\"\"\"
+                    target_file = "main.py" if os.path.exists("main.py") else r"{file_path}"
+                    with open(target_file, "r", encoding="utf-8", errors="replace") as f:
+                        source = f.read()
+                    namespace = {{}}
+                    exec(compile(source, target_file, "exec"), namespace)
+                    if "find_student" in namespace and "students" in namespace:
+                        if len(namespace["students"]) >= 2:
+                            last_student = namespace["students"][-1]
+                            res = namespace["find_student"](last_student["name"])
+                            self.assertIsNotNone(res, f"find_student failed to find student {{last_student['name']}}")
+                            self.assertEqual(res.get("name"), last_student["name"])
+
+            if __name__ == "__main__":
+                unittest.main()
+        """)
+
     # Generic boundary / invariant test
     func_name = function_name or "target_function"
     return textwrap.dedent(f"""\

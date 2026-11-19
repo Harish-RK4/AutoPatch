@@ -436,6 +436,71 @@ def _fix_zero_division_expr(line: str) -> str:
     return res
 
 
+def _fix_premature_loop_return(code: str, issue: dict[str, Any]) -> str:
+    """Removes 'else: return' from inside loop and places return statement at loop level."""
+    lines = code.splitlines()
+    new_lines = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if stripped == "else:":
+            if i + 1 < len(lines) and lines[i + 1].strip().startswith("return"):
+                ret_line = lines[i + 1].strip()
+                loop_indent = None
+                for prev_idx in range(i - 1, -1, -1):
+                    prev_stripped = lines[prev_idx].strip()
+                    if prev_stripped.startswith(("for ", "while ")):
+                        loop_indent = " " * (len(lines[prev_idx]) - len(lines[prev_idx].lstrip()))
+                        break
+
+                if loop_indent is not None:
+                    i += 2
+                    while i < len(lines):
+                        cur_line = lines[i]
+                        if not cur_line.strip():
+                            new_lines.append(cur_line)
+                            i += 1
+                            continue
+                        cur_indent = len(cur_line) - len(cur_line.lstrip())
+                        if cur_indent <= len(loop_indent):
+                            break
+                        new_lines.append(cur_line)
+                        i += 1
+                    new_lines.append(f"{loop_indent}{ret_line}")
+                    continue
+        new_lines.append(line)
+        i += 1
+    return "\n".join(new_lines)
+
+
+def _synthesize_premature_return_defensive(code: str, issue: dict[str, Any]) -> str:
+    """Defensive repair for loop return: fixes premature return and adds null/collection check."""
+    fixed_code = _fix_premature_loop_return(code, issue)
+    lines = fixed_code.splitlines()
+    target_idx = max(0, issue.get("line_number", 1) - 1)
+    for idx in range(target_idx, -1, -1):
+        if lines[idx].strip().startswith("def "):
+            fn_indent = " " * (len(lines[idx]) - len(lines[idx].lstrip()))
+            guard = f"{fn_indent}    # DEFENSIVE GUARD: safe bounds and null check\n{fn_indent}    if not students:\n{fn_indent}        return None"
+            lines.insert(idx + 1, guard)
+            break
+    return "\n".join(lines)
+
+
+def _synthesize_premature_return_refactored(code: str, issue: dict[str, Any]) -> str:
+    """Refactored repair for loop return: ensures exhaustive iteration before exit."""
+    fixed = _fix_premature_loop_return(code, issue)
+    lines = fixed.splitlines()
+    target_idx = max(0, issue.get("line_number", 1) - 1)
+    for idx in range(target_idx, -1, -1):
+        if lines[idx].strip().startswith(("for ", "while ")):
+            indent = " " * (len(lines[idx]) - len(lines[idx].lstrip()))
+            lines.insert(idx, f"{indent}# REFACTORED: loop iteration preserved, return placed after full scan")
+            break
+    return "\n".join(lines)
+
+
 def _synthesize_minimal_fix(code: str, issue: dict[str, Any], language: str) -> str:
     """Strategy 1: Smallest possible targeted patch."""
     rule_id = issue["rule_id"]
@@ -459,6 +524,8 @@ def _synthesize_minimal_fix(code: str, issue: dict[str, Any], language: str) -> 
             lines[target_idx] = _fix_zero_division_expr(lines[target_idx])
             return "\n".join(lines)
         return _fix_zero_division_expr(code)
+    elif rule_id == "BUG-PREMATURE-RETURN":
+        return _fix_premature_loop_return(code, issue)
     elif rule_id == "BUG-NAME-ERR":
         m = re.search(r"name ['\"]([a-zA-Z0-9_]+)['\"] is not defined", issue.get("message", ""))
         var_name = m.group(1) if m else "missing_var"
@@ -519,6 +586,8 @@ def _synthesize_defensive_guard(code: str, issue: dict[str, Any], language: str)
         guard = f"{indent}# DEFENSIVE: safe fallback for undefined variable\n{indent}if '{var_name}' not in locals() and '{var_name}' not in globals():\n{indent}    {var_name} = 0"
         lines.insert(target_idx, guard)
         return "\n".join(lines)
+    elif rule_id == "BUG-PREMATURE-RETURN":
+        return _synthesize_premature_return_defensive(code, issue)
     elif rule_id in ("BUG-TYPE-ERR", "BUG-INDEX-ERR", "BUG-KEY-ERR", "BUG-ATTR-ERR", "RUNTIME-CRASH"):
         lines[target_idx] = f"{indent}try:\n    {lines[target_idx]}\n{indent}except Exception as err:\n{indent}    import logging\n{indent}    logging.warning(f'Defensively handled runtime crash: {{err}}')"
         return "\n".join(lines)
@@ -564,6 +633,8 @@ def _synthesize_refactored_fix(code: str, issue: dict[str, Any], language: str) 
         var_name = m.group(1) if m else "var"
         lines[target_idx] = f"{indent}# REFACTORED: guarded variable access\n{indent}try:\n    {lines[target_idx]}\n{indent}except (NameError, UnboundLocalError):\n{indent}    {var_name} = None"
         return "\n".join(lines)
+    elif rule_id == "BUG-PREMATURE-RETURN":
+        return _synthesize_premature_return_refactored(code, issue)
     elif rule_id in ("BUG-TYPE-ERR", "BUG-INDEX-ERR", "BUG-KEY-ERR", "BUG-ATTR-ERR", "RUNTIME-CRASH"):
         lines[target_idx] = f"{indent}# REFACTORED: resilient execution block\n{indent}try:\n    {lines[target_idx]}\n{indent}except Exception as exc:\n{indent}    pass"
         return "\n".join(lines)

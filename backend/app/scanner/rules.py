@@ -46,6 +46,38 @@ class PythonASTSecurityVisitor(ast.NodeVisitor):
         self.lines = lines
         self.issues: list[ScanIssue] = []
 
+    def visit_For(self, node: ast.For):
+        self._check_loop_premature_return(node)
+        self.generic_visit(node)
+
+    def visit_While(self, node: ast.While):
+        self._check_loop_premature_return(node)
+        self.generic_visit(node)
+
+    def _check_loop_premature_return(self, node: ast.For | ast.While):
+        for stmt in node.body:
+            if isinstance(stmt, ast.If) and stmt.orelse:
+                has_if_ret = any(isinstance(s, ast.Return) for s in stmt.body)
+                has_else_ret = any(isinstance(s, ast.Return) for s in stmt.orelse)
+                if has_if_ret and has_else_ret:
+                    line = stmt.lineno
+                    snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
+                    self.issues.append(
+                        ScanIssue(
+                            id=f"ISSUE-{uuid.uuid4().hex[:6].upper()}",
+                            file_path=self.file_path,
+                            line_number=line,
+                            column=stmt.col_offset,
+                            rule_id="BUG-PREMATURE-RETURN",
+                            severity="high",
+                            category="logic",
+                            message="Premature return in loop: 'else: return' causes loop to exit on the very first non-matching element.",
+                            snippet=snippet,
+                            cwe_id="CWE-670",
+                            suggested_fix="Remove 'else: return None' from inside loop and place 'return None' after loop.",
+                        )
+                    )
+
     def visit_Call(self, node: ast.Call):
         # 1. Check for eval() or exec() calls
         if isinstance(node.func, ast.Name) and node.func.id in ("eval", "exec"):
