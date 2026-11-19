@@ -1,12 +1,12 @@
 """
 Patch Engine Models
-Defines patch candidates, verification tiers (V1-V4), and test proof metadata.
+Defines patch candidates, verification tiers (V0-V4), and test proof metadata.
 """
 
 from dataclasses import dataclass
 from typing import Any, Literal
 
-VerificationLevel = Literal["V1", "V2", "V3", "V4"]
+VerificationLevel = Literal["V0", "V1", "V2", "V3", "V4"]
 
 
 @dataclass
@@ -32,6 +32,14 @@ class PatchCandidate:
     explanation: str
     status: Literal["proposed", "approved", "rejected"] = "proposed"
     created_at: str = ""
+    # Phase P2 additions
+    candidate_number: int = 1
+    strategy: str = "Minimal Targeted Fix"
+    blast_radius: dict[str, Any] | None = None
+    critic_verdict: dict[str, Any] | None = None
+    critic_rank: int = 0
+    priority_score: float = 0.0
+    priority_rank: int = 0
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -55,4 +63,11 @@ class PatchCandidate:
             "explanation": self.explanation,
             "status": self.status,
             "created_at": self.created_at,
+            "candidate_number": self.candidate_number,
+            "strategy": self.strategy,
+            "blast_radius": self.blast_radius,
+            "critic_verdict": self.critic_verdict,
+            "critic_rank": self.critic_rank,
+            "priority_score": self.priority_score,
+            "priority_rank": self.priority_rank,
         }
