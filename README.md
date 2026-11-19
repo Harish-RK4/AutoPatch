@@ -62,9 +62,19 @@ uvicorn app.main:app --reload --port 8000
 npm run dev
 ```
 
-Visit `http://localhost:3000` to access the application. Use demo credentials:
+Visit `http://localhost:3000` to access the application starting page. Explore the live interactive defect demo, review the 5-step pipeline, and log into the demo portal (`http://localhost:3000/login`) using:
 - **Email**: `demo@autopatch.dev`
 - **Password**: `Demo@1234`
+
+### Application Routes & Navigation
+- `/`: AutoPatch starting page with "Build for Trust" overview, 5-stage workflow, and code-to-proof preview.
+- `/dashboard`: Engineering dashboard with active workspaces and verification metrics.
+- `/projects`: Multi-language workspaces inventory (`/projects/demo-proj-001`).
+- `/bugs`: Defect inventory with origin/crash lines and confidence rankings (`/bugs/demo-bug-001`).
+- `/patches`: Patch review panel with split diff viewer and proof bundles (`/patches/demo-patch-001`).
+- `/history`: Audit & change history with rollback (Designed empty state for P0).
+- `/analytics`: Telemetry and defect intelligence dashboard (Designed empty state for P0).
+- `/settings`: LLM engine routing table (`llm_routing.yaml`), provider quotas, and connection testing.
 
 ---
 

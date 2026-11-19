@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Starting / Landing page at `/` with "Build for Trust" philosophy, 5-stage workflow, Python Marks Calculator proof preview, and light/dark theme toggle.
+- Top-bar Notification Bell with simulated real-time pipeline events (scan completed, bug confirmed, patch verified) and mark-as-read state.
+- Complete routing coverage across all sidebar destinations (`/projects`, `/bugs`, `/patches`, `/history`, `/analytics`, `/settings`) with designed "Not available yet" empty states.
 - Phase P0 repository initialization with mandatory documentation standards.
 - Production environment demo guard preventing `/demo` execution in production builds.
 - Architecture and system design specifications for the autonomous bug detection pipeline.
