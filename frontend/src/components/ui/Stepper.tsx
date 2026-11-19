@@ -35,16 +35,16 @@ export function Stepper({ currentStage, className = "" }: StepperProps) {
                       ? "bg-[#10B981] text-white"
                       : isActive
                       ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09] ring-2 ring-[#0F766E]/20"
-                      : "bg-[#E7E5E4] dark:bg-[#292524] text-[#78716C] dark:text-[#A8A29E]"
+                      : "bg-[#E7E5E4] dark:bg-[#292524] text-[#57534E] dark:text-[#D6D3D1]"
                   }`}
                 >
                   {isCompleted ? <Check className="w-3.5 h-3.5" /> : idx + 1}
                 </div>
                 <div className="hidden sm:block">
-                  <div className={`text-xs font-medium leading-none ${isActive ? "text-[#1C1917] dark:text-[#F5F5F4]" : "text-[#78716C] dark:text-[#A8A29E]"}`}>
+                  <div className={`text-xs font-medium leading-none ${isActive ? "text-[#1C1917] dark:text-[#F5F5F4]" : "text-[#57534E] dark:text-[#D6D3D1]"}`}>
                     {stage.label}
                   </div>
-                  <div className="text-[10px] text-[#A8A29E] dark:text-[#78716C] mt-0.5">
+                  <div className="text-[10px] text-[#57534E] dark:text-[#D6D3D1] mt-0.5">
                     {stage.description}
                   </div>
                 </div>

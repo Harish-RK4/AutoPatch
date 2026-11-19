@@ -89,7 +89,7 @@ export default function SettingsPage() {
         <h1 className="text-xl font-bold tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
           LLM Engine & Services Configuration
         </h1>
-        <p className="text-xs text-[#78716C] dark:text-[#A8A29E] mt-0.5">
+        <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] mt-0.5">
           Role-based LLM routing table, active provider connectivity, and rate-limit quotas.
         </p>
       </div>
@@ -130,16 +130,16 @@ export default function SettingsPage() {
                 <div className="flex items-center gap-2">
                   <span className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">{p.name}</span>
                   {p.configured ? (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#10B981]/15 text-[#059669] dark:text-[#10B981]">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#10B981]/15 text-[#047857] dark:text-[#34D399]">
                       Configured
                     </span>
                   ) : (
-                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#6B7280]/15 text-[#6B7280]">
+                    <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#6B7280]/15 text-[#374151] dark:text-[#E5E7EB]">
                       Optional Key Missing
                     </span>
                   )}
                 </div>
-                <div className="font-mono text-[11px] text-[#78716C] dark:text-[#A8A29E] flex items-center gap-3">
+                <div className="font-mono text-[11px] text-[#57534E] dark:text-[#D6D3D1] flex items-center gap-3">
                   <span>Model: {p.model}</span>
                   <span>Credentials: {p.masked_key || p.url}</span>
                 </div>
@@ -167,7 +167,7 @@ export default function SettingsPage() {
           <KeyRound className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
           Active Agent Role-Based Routing (`llm_routing.yaml`)
         </h3>
-        <p className="text-xs text-[#78716C] dark:text-[#A8A29E]">
+        <p className="text-xs text-[#57534E] dark:text-[#D6D3D1]">
           Agents route dynamically through primary adapters with automatic fallback chains upon rate limit (429) or timeout.
         </p>
 

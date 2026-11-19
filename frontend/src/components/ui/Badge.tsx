@@ -14,9 +14,9 @@ export function Badge({ children, variant = "zinc", vLevel, className = "" }: Ba
     const vVariant = config.variant;
     
     const vStyles = {
-      emerald: "bg-[#10B981]/10 text-[#059669] border-[#10B981]/30 dark:text-[#10B981]",
-      amber: "bg-[#F59E0B]/10 text-[#D97706] border-[#F59E0B]/30 dark:text-[#F59E0B]",
-      zinc: "bg-[#6B7280]/10 text-[#4B5563] border-[#6B7280]/30 dark:text-[#9CA3AF]",
+      emerald: "bg-[#10B981]/15 text-[#047857] border-[#10B981]/30 dark:text-[#34D399]",
+      amber: "bg-[#F59E0B]/15 text-[#B45309] border-[#F59E0B]/30 dark:text-[#FBBF24]",
+      zinc: "bg-[#6B7280]/15 text-[#374151] border-[#6B7280]/30 dark:text-[#E5E7EB]",
     };
 
     return (
@@ -31,11 +31,11 @@ export function Badge({ children, variant = "zinc", vLevel, className = "" }: Ba
   }
 
   const styles = {
-    teal: "bg-[#0F766E]/10 text-[#0F766E] border-[#0F766E]/20 dark:text-[#14B8A6]",
-    amber: "bg-[#F59E0B]/10 text-[#D97706] border-[#F59E0B]/20 dark:text-[#F59E0B]",
-    emerald: "bg-[#10B981]/10 text-[#059669] border-[#10B981]/20 dark:text-[#10B981]",
-    rose: "bg-[#EF4444]/10 text-[#DC2626] border-[#EF4444]/20 dark:text-[#EF4444]",
-    zinc: "bg-[#6B7280]/10 text-[#4B5563] border-[#6B7280]/20 dark:text-[#9CA3AF]",
+    teal: "bg-[#0F766E]/15 text-[#0F766E] border-[#0F766E]/30 dark:text-[#2DD4BF]",
+    amber: "bg-[#F59E0B]/15 text-[#B45309] border-[#F59E0B]/30 dark:text-[#FBBF24]",
+    emerald: "bg-[#10B981]/15 text-[#047857] border-[#10B981]/30 dark:text-[#34D399]",
+    rose: "bg-[#EF4444]/15 text-[#B91C1C] border-[#EF4444]/30 dark:text-[#F87171]",
+    zinc: "bg-[#6B7280]/15 text-[#374151] border-[#6B7280]/30 dark:text-[#E5E7EB]",
   };
 
   return (

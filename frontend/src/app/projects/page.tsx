@@ -19,7 +19,7 @@ export default function ProjectsListPage() {
         <h1 className="text-xl font-bold tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
           Workspaces & Projects
         </h1>
-        <p className="text-xs text-[#78716C] dark:text-[#A8A29E] mt-0.5">
+        <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] mt-0.5">
           Select an active workspace to view its 5-stage pipeline, file index, and detected defects.
         </p>
       </div>
@@ -41,12 +41,12 @@ export default function ProjectsListPage() {
               <Badge variant="teal">{proj.language || "Polyglot"}</Badge>
             </div>
 
-            <p className="text-xs text-[#78716C] dark:text-[#A8A29E] line-clamp-2 mb-4 leading-relaxed">
+            <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] line-clamp-2 mb-4 leading-relaxed">
               {proj.description || "Active source project indexed for autonomous bug detection and repair."}
             </p>
 
             <div className="flex items-center justify-between text-xs pt-3 border-t border-[#E7E5E4] dark:border-[#292524] font-mono">
-              <span className="text-[#A8A29E]">Status: <span className="text-[#10B981] font-medium">Ready</span></span>
+              <span className="text-[#57534E] dark:text-[#D6D3D1]">Status: <span className="text-[#10B981] font-medium">Ready</span></span>
               <span className="flex items-center gap-1 text-[#0F766E] dark:text-[#14B8A6] font-sans font-medium text-xs">
                 Open Workspace <ArrowRight className="w-3.5 h-3.5 stroke-[1.5]" />
               </span>

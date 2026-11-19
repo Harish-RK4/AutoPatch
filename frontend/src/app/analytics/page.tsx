@@ -19,12 +19,12 @@ export default function AnalyticsPage() {
         <h1 className="text-xl font-bold tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
           Engineering Analytics & Defect Intelligence
         </h1>
-        <p className="text-xs text-[#78716C] dark:text-[#A8A29E] leading-relaxed max-w-lg mx-auto">
+        <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] leading-relaxed max-w-lg mx-auto">
           Deep telemetry tracking time saved, patch acceptance rates, defect recurrence frequency, and bug-prone codebase modules.
         </p>
       </div>
 
-      <div className="p-4 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg text-left text-xs font-mono space-y-2 text-[#78716C] dark:text-[#A8A29E]">
+      <div className="p-4 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg text-left text-xs font-mono space-y-2 text-[#57534E] dark:text-[#D6D3D1]">
         <p className="text-[#1C1917] dark:text-[#F5F5F4] font-semibold">Planned Deliverables:</p>
         <p>• Phase P8: Aggregated metrics endpoint (<code className="text-[#0F766E] dark:text-[#14B8A6]">GET /analytics</code>) with Recharts trendline visualizations.</p>
         <p>• Phase P8: Bug-prone module heatmaps and developer triage velocity.</p>

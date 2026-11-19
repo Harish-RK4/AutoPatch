@@ -67,7 +67,7 @@ export function TopNav() {
   return (
     <header className="h-12 border-b border-[#E7E5E4] dark:border-[#292524] bg-white dark:bg-[#141210] px-4 flex items-center justify-between relative z-40">
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2 text-xs font-mono text-[#78716C] dark:text-[#A8A29E] bg-[#FAF9F6] dark:bg-[#1C1917] px-2.5 py-1 rounded border border-[#E7E5E4] dark:border-[#292524]">
+        <div className="flex items-center gap-2 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1] bg-[#FAF9F6] dark:bg-[#1C1917] px-2.5 py-1 rounded border border-[#E7E5E4] dark:border-[#292524]">
           <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]" />
           <span>Active Target: Python Marks Calculator</span>
         </div>
@@ -81,12 +81,12 @@ export function TopNav() {
           <button
             type="button"
             onClick={() => setIsOpen(!isOpen)}
-            aria-label="View notifications"
-            className="w-8 h-8 rounded flex items-center justify-center text-[#78716C] dark:text-[#A8A29E] hover:bg-black/5 dark:hover:bg-white/5 relative border border-[#E7E5E4] dark:border-[#292524] transition-colors"
+            aria-label={unreadCount > 0 ? `${unreadCount} unread notifications` : "View notifications"}
+            className="w-8 h-8 rounded flex items-center justify-center text-[#57534E] dark:text-[#D6D3D1] hover:bg-black/5 dark:hover:bg-white/5 relative border border-[#E7E5E4] dark:border-[#292524] transition-colors"
           >
-            <Bell className="w-4 h-4 stroke-[1.5]" />
+            <Bell className="w-4 h-4 stroke-[1.5]" aria-hidden="true" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0F766E] dark:bg-[#14B8A6] text-white dark:text-[#0C0A09] text-[9px] font-mono font-bold flex items-center justify-center">
+              <span aria-hidden="true" className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#0F766E] dark:bg-[#14B8A6] text-white dark:text-[#0C0A09] text-[9px] font-mono font-bold flex items-center justify-center">
                 {unreadCount}
               </span>
             )}
@@ -118,7 +118,7 @@ export function TopNav() {
                   <button
                     onClick={() => setIsOpen(false)}
                     aria-label="Close notification panel"
-                    className="text-[#78716C] hover:text-[#1C1917] dark:hover:text-[#F5F5F4]"
+                    className="text-[#57534E] dark:text-[#D6D3D1] hover:text-[#1C1917] dark:hover:text-[#F5F5F4]"
                   >
                     <X className="w-4 h-4 stroke-[1.5]" />
                   </button>
@@ -146,9 +146,9 @@ export function TopNav() {
                     <div className="flex-1 space-y-0.5">
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">{n.title}</span>
-                        <span className="text-[#A8A29E] font-mono text-[10px]">{n.timestamp}</span>
+                        <span className="text-[#57534E] dark:text-[#D6D3D1] font-mono text-[10px]">{n.timestamp}</span>
                       </div>
-                      <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+                      <p className="text-[11px] text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                         {n.body}
                       </p>
                     </div>

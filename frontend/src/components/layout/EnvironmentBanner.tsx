@@ -15,10 +15,10 @@ export function EnvironmentBanner() {
       <div className="flex items-center gap-2">
         <span className="w-2 h-2 rounded-full bg-[#F59E0B] animate-pulse" />
         <span className="font-semibold uppercase tracking-wider text-[#F59E0B]">Demo Mode Active:</span>
-        <span className="text-[#A8A29E]">Seeded fixtures loaded. Sandboxed offline Mock Provider active.</span>
+        <span className="text-[#57534E] dark:text-[#D6D3D1]">Seeded fixtures loaded. Sandboxed offline Mock Provider active.</span>
       </div>
       <div className="flex items-center gap-3 text-xs">
-        <span className="hidden sm:inline text-[#A8A29E]">Demo Account: <code className="text-[#FAF9F6]">demo@autopatch.dev</code></span>
+        <span className="hidden sm:inline text-[#57534E] dark:text-[#D6D3D1]">Demo Account: <code className="text-[#FAF9F6]">demo@autopatch.dev</code></span>
         <span className="bg-[#292524] px-2 py-0.5 rounded text-[#F59E0B] font-medium">Zero Keys Needed</span>
       </div>
     </aside>

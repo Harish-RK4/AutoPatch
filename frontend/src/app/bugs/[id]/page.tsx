@@ -31,7 +31,7 @@ export default function BugDetailPage() {
   }, [bugId]);
 
   if (!bug) {
-    return <div className="p-8 text-center text-xs text-[#78716C] dark:text-[#A8A29E]">Loading bug details...</div>;
+    return <div className="p-8 text-center text-xs text-[#57534E] dark:text-[#D6D3D1]">Loading bug details...</div>;
   }
 
   const patch = bug.patches?.[0] || {};
@@ -43,7 +43,7 @@ export default function BugDetailPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/bugs"
-            className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 text-[#78716C] dark:text-[#A8A29E]"
+            className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 text-[#57534E] dark:text-[#D6D3D1]"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
@@ -55,7 +55,7 @@ export default function BugDetailPage() {
               <Badge variant="rose">High</Badge>
               <Badge vLevel={bug.verification_level || "V4"} />
             </div>
-            <p className="text-xs text-[#78716C] dark:text-[#A8A29E] font-mono mt-0.5">
+            <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] font-mono mt-0.5">
               File: <code className="text-[#1C1917] dark:text-[#F5F5F4]">{bug.file_path}:L{bug.line_start}-L{bug.line_end}</code> · Category: <span className="capitalize">{bug.category}</span>
             </p>
           </div>
@@ -75,14 +75,14 @@ export default function BugDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Section 1: Bug Details */}
         <div className="p-4 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E] flex items-center gap-1.5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1] flex items-center gap-1.5">
             <Bug className="w-3.5 h-3.5 text-[#EF4444]" />
             1. Bug Details
           </h2>
           <p className="text-xs text-[#1C1917] dark:text-[#F5F5F4] leading-relaxed">
             {bug.description}
           </p>
-          <div className="pt-2 text-xs font-mono text-[#78716C] dark:text-[#A8A29E] space-y-1">
+          <div className="pt-2 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1] space-y-1">
             <p>• Origin Line: <span className="text-[#F59E0B]">Line {bug.origin_line || 5}</span> (raw input ingestion)</p>
             <p>• Crash Line: <span className="text-[#EF4444]">Line {bug.crash_line || 12}</span> (unbounded formula execution)</p>
             <p>• Trigger Input: <code className="text-[#1C1917] dark:text-[#F5F5F4]">{JSON.stringify(bug.trigger_input)}</code></p>
@@ -92,33 +92,33 @@ export default function BugDetailPage() {
         {/* Section 2: Root Cause with 3 Explanation Levels */}
         <div className="p-4 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E] flex items-center gap-1.5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1] flex items-center gap-1.5">
               <FileCode className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
               2. Root Cause & Explanation
             </h2>
             <div className="flex items-center gap-1 bg-[#FAF9F6] dark:bg-[#1C1917] p-0.5 rounded border border-[#E7E5E4] dark:border-[#292524] text-[10px]">
               <button
                 onClick={() => setActiveTab("dev")}
-                className={`px-2 py-0.5 rounded ${activeTab === "dev" ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09]" : "text-[#78716C]"}`}
+                className={`px-2 py-0.5 rounded ${activeTab === "dev" ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09]" : "text-[#57534E] dark:text-[#D6D3D1]"}`}
               >
                 Developer
               </button>
               <button
                 onClick={() => setActiveTab("beg")}
-                className={`px-2 py-0.5 rounded ${activeTab === "beg" ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09]" : "text-[#78716C]"}`}
+                className={`px-2 py-0.5 rounded ${activeTab === "beg" ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09]" : "text-[#57534E] dark:text-[#D6D3D1]"}`}
               >
                 Beginner
               </button>
               <button
                 onClick={() => setActiveTab("mgr")}
-                className={`px-2 py-0.5 rounded ${activeTab === "mgr" ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09]" : "text-[#78716C]"}`}
+                className={`px-2 py-0.5 rounded ${activeTab === "mgr" ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09]" : "text-[#57534E] dark:text-[#D6D3D1]"}`}
               >
                 Manager
               </button>
             </div>
           </div>
 
-          <div className="p-3 bg-[#FAF9F6] dark:bg-[#1C1917] rounded border border-[#E7E5E4] dark:border-[#292524] text-xs text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+          <div className="p-3 bg-[#FAF9F6] dark:bg-[#1C1917] rounded border border-[#E7E5E4] dark:border-[#292524] text-xs text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
             {activeTab === "dev" && bug.root_cause?.developer}
             {activeTab === "beg" && bug.root_cause?.beginner}
             {activeTab === "mgr" && bug.root_cause?.manager}
@@ -127,7 +127,7 @@ export default function BugDetailPage() {
 
         {/* Section 3: Suggested Patch Diff */}
         <div className="md:col-span-2 p-4 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E] flex items-center gap-1.5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1] flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" />
             3. Suggested Patch (Minimal Diff)
           </h2>
@@ -142,7 +142,7 @@ export default function BugDetailPage() {
 
         {/* Section 4: Test Results */}
         <div className="p-4 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg space-y-2">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E] flex items-center gap-1.5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1] flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
             4. Test Results & Proof Bundle
           </h2>
@@ -165,7 +165,7 @@ export default function BugDetailPage() {
         {/* Section 5 & 6: Severity/Confidence & Change History */}
         <div className="p-4 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg space-y-3">
           <div>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E] mb-1.5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1] mb-1.5">
               5. Severity & Confidence
             </h2>
             <div className="flex items-center gap-3 text-xs font-mono">
@@ -176,11 +176,11 @@ export default function BugDetailPage() {
           </div>
 
           <div className="pt-2 border-t border-[#E7E5E4] dark:border-[#292524]">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E] mb-1 flex items-center gap-1.5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1] mb-1 flex items-center gap-1.5">
               <History className="w-3.5 h-3.5" />
               6. Change History
             </h2>
-            <p className="text-xs text-[#78716C] dark:text-[#A8A29E]">
+            <p className="text-xs text-[#57534E] dark:text-[#D6D3D1]">
               Detected during automated pipeline run. State: <span className="text-[#10B981] font-medium uppercase font-mono">Confirmed</span>
             </p>
           </div>

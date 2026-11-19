@@ -19,7 +19,7 @@ export default function BugsListPage() {
         <h1 className="text-xl font-bold tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
           Defect Inventory
         </h1>
-        <p className="text-xs text-[#78716C] dark:text-[#A8A29E] mt-0.5">
+        <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] mt-0.5">
           Priority-ranked defects with exact origin and crash lines, verification ratings, and proof status.
         </p>
       </div>
@@ -42,7 +42,7 @@ export default function BugsListPage() {
                 </span>
               </div>
 
-              <div className="flex items-center gap-4 text-xs font-mono text-[#78716C] dark:text-[#A8A29E]">
+              <div className="flex items-center gap-4 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1]">
                 <span className="flex items-center gap-1 text-[#1C1917] dark:text-[#F5F5F4]">
                   <FileCode className="w-3.5 h-3.5 stroke-[1.5]" />
                   {bug.file_path}:L{bug.line_start}-L{bug.line_end}

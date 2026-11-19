@@ -47,7 +47,7 @@ export default function ProjectDetailsPage() {
             <Badge variant="teal">Python 3.12</Badge>
             <Badge vLevel="V4" />
           </div>
-          <p className="text-xs text-[#78716C] dark:text-[#A8A29E]">
+          <p className="text-xs text-[#57534E] dark:text-[#D6D3D1]">
             Target File: <code className="font-mono text-[#1C1917] dark:text-[#F5F5F4]">calculator.py</code> · Student grading arithmetic module.
           </p>
         </div>
@@ -74,7 +74,7 @@ export default function ProjectDetailsPage() {
             <Bug className="w-4 h-4 text-[#EF4444]" />
             Detected Flaws & Logical Defects
           </h2>
-          <span className="text-xs text-[#78716C] dark:text-[#A8A29E] font-mono">
+          <span className="text-xs text-[#57534E] dark:text-[#D6D3D1] font-mono">
             {bugs.length} Identified
           </span>
         </div>
@@ -97,7 +97,7 @@ export default function ProjectDetailsPage() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-4 text-xs font-mono text-[#78716C] dark:text-[#A8A29E]">
+                <div className="flex items-center gap-4 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1]">
                   <span className="flex items-center gap-1 text-[#1C1917] dark:text-[#F5F5F4]">
                     <FileCode className="w-3.5 h-3.5" />
                     {bug.file_path}:L{bug.line_start}-L{bug.line_end}

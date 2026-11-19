@@ -38,7 +38,7 @@ export default function LoginPage() {
             <h1 className="text-xl font-bold tracking-tight text-[#1C1917] dark:text-[#F5F5F4] mb-2">
               Sign In to AutoPatch
             </h1>
-            <p className="text-xs text-[#78716C] dark:text-[#A8A29E] mb-6">
+            <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] mb-6">
               Autonomous software bug detection, repair, and sandboxed verification.
             </p>
 
@@ -50,10 +50,11 @@ export default function LoginPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-medium text-[#1C1917] dark:text-[#F5F5F4] mb-1">
+                <label htmlFor="login-email" className="block text-xs font-medium text-[#1C1917] dark:text-[#F5F5F4] mb-1">
                   Email Address
                 </label>
                 <input
+                  id="login-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -63,10 +64,11 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-[#1C1917] dark:text-[#F5F5F4] mb-1">
+                <label htmlFor="login-password" className="block text-xs font-medium text-[#1C1917] dark:text-[#F5F5F4] mb-1">
                   Password
                 </label>
                 <input
+                  id="login-password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -82,7 +84,7 @@ export default function LoginPage() {
             </form>
           </div>
 
-          <div className="mt-8 pt-4 border-t border-[#E7E5E4] dark:border-[#292524] text-[11px] text-[#78716C] dark:text-[#A8A29E]">
+          <div className="mt-8 pt-4 border-t border-[#E7E5E4] dark:border-[#292524] text-[11px] text-[#57534E] dark:text-[#D6D3D1]">
             <p className="font-semibold text-[#F59E0B] mb-1">Demo Mode Credentials:</p>
             <p>Email: <code className="text-[#1C1917] dark:text-[#F5F5F4]">demo@autopatch.dev</code></p>
             <p>Password: <code className="text-[#1C1917] dark:text-[#F5F5F4]">Demo@1234</code></p>
@@ -105,7 +107,7 @@ export default function LoginPage() {
                   <AlertTriangle className="w-3.5 h-3.5" />
                   Bug Detected: calculate_percentage(-5, 100)
                 </div>
-                <div className="text-[11px] text-[#78716C] dark:text-[#A8A29E]">
+                <div className="text-[11px] text-[#57534E] dark:text-[#D6D3D1]">
                   Accepts negative input without precondition check. Produces -5.0%.
                 </div>
               </div>
@@ -127,7 +129,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="pt-6 text-[10px] text-[#A8A29E] font-sans">
+          <div className="pt-6 text-[10px] text-[#57534E] dark:text-[#D6D3D1] font-sans">
             Every bug explained · Every change shown · Tested before developer approval
           </div>
         </div>

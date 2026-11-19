@@ -21,7 +21,7 @@ export default function PatchesListPage() {
         <h1 className="text-xl font-bold tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
           Patch Candidates & Proof Bundles
         </h1>
-        <p className="text-xs text-[#78716C] dark:text-[#A8A29E] mt-0.5">
+        <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] mt-0.5">
           Review minimal code repairs evaluated by the Critic agent and verified by the test harness.
         </p>
       </div>
@@ -44,11 +44,11 @@ export default function PatchesListPage() {
                 </span>
               </div>
 
-              <p className="text-xs text-[#78716C] dark:text-[#A8A29E]">
+              <p className="text-xs text-[#57534E] dark:text-[#D6D3D1]">
                 {p.reason}
               </p>
 
-              <div className="flex items-center gap-3 text-xs font-mono text-[#A8A29E] pt-1">
+              <div className="flex items-center gap-3 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1] pt-1">
                 <span>Branch: <code className="text-[#1C1917] dark:text-[#F5F5F4]">{p.git_branch}</code></span>
                 <span>•</span>
                 <span>Proof: <span className="text-[#10B981]">14/14 tests pass</span></span>

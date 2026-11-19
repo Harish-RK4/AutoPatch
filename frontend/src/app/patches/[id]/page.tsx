@@ -31,7 +31,7 @@ export default function PatchReviewPage() {
   }, []);
 
   if (!bug) {
-    return <div className="p-8 text-center text-xs text-[#78716C] dark:text-[#A8A29E]">Loading patch review...</div>;
+    return <div className="p-8 text-center text-xs text-[#57534E] dark:text-[#D6D3D1]">Loading patch review...</div>;
   }
 
   const patch = bug.patches?.[0] || {};
@@ -50,7 +50,7 @@ export default function PatchReviewPage() {
         <div className="flex items-center gap-3">
           <a
             href="/projects/demo-proj-001"
-            className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 text-[#78716C] dark:text-[#A8A29E]"
+            className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 text-[#57534E] dark:text-[#D6D3D1]"
           >
             <ArrowLeft className="w-4 h-4" />
           </a>
@@ -62,7 +62,7 @@ export default function PatchReviewPage() {
               <Badge vLevel="V4" />
               <Badge variant="teal">Confidence: 100%</Badge>
             </div>
-            <p className="text-xs text-[#78716C] dark:text-[#A8A29E] font-mono mt-0.5">
+            <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] font-mono mt-0.5">
               Target: <code className="text-[#1C1917] dark:text-[#F5F5F4]">{bug.file_path}</code> · Branch: <code className="text-[#1C1917] dark:text-[#F5F5F4]">{patch.git_branch}</code>
             </p>
           </div>
@@ -75,7 +75,7 @@ export default function PatchReviewPage() {
             className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
               selectedCandidate === 1
                 ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09]"
-                : "text-[#78716C] dark:text-[#A8A29E] hover:text-[#1C1917]"
+                : "text-[#57534E] dark:text-[#D6D3D1] hover:text-[#1C1917]"
             }`}
           >
             Candidate 1 (Rank 1 - Minimal)
@@ -85,7 +85,7 @@ export default function PatchReviewPage() {
             className={`px-2.5 py-1 text-xs rounded font-medium transition-colors ${
               selectedCandidate === 2
                 ? "bg-[#0F766E] text-white dark:bg-[#14B8A6] dark:text-[#0C0A09]"
-                : "text-[#78716C] dark:text-[#A8A29E] hover:text-[#1C1917]"
+                : "text-[#57534E] dark:text-[#D6D3D1] hover:text-[#1C1917]"
             }`}
           >
             Candidate 2 (Clamping)
@@ -120,19 +120,19 @@ export default function PatchReviewPage() {
             <div className="space-y-3 text-xs">
               <div className="p-3 bg-[#FAF9F6] dark:bg-[#1C1917] rounded border border-[#E7E5E4] dark:border-[#292524]">
                 <span className="font-semibold text-[#0F766E] dark:text-[#14B8A6] block mb-1">Developer Analysis:</span>
-                <p className="text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+                <p className="text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                   {bug.root_cause?.developer}
                 </p>
               </div>
               <div className="p-3 bg-[#FAF9F6] dark:bg-[#1C1917] rounded border border-[#E7E5E4] dark:border-[#292524]">
                 <span className="font-semibold text-[#F59E0B] block mb-1">Beginner Analogy:</span>
-                <p className="text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+                <p className="text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                   {bug.root_cause?.beginner}
                 </p>
               </div>
               <div className="p-3 bg-[#FAF9F6] dark:bg-[#1C1917] rounded border border-[#E7E5E4] dark:border-[#292524]">
                 <span className="font-semibold text-[#10B981] block mb-1">Manager Summary:</span>
-                <p className="text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+                <p className="text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                   {bug.root_cause?.manager}
                 </p>
               </div>
@@ -149,14 +149,14 @@ export default function PatchReviewPage() {
                 <FileCheck2 className="w-3.5 h-3.5 text-[#0F766E] dark:text-[#14B8A6]" />
                 Per-Hunk Explanation Card
               </span>
-              <span className="text-[10px] font-mono text-[#A8A29E]">Hunk #1</span>
+              <span className="text-[10px] font-mono text-[#57534E] dark:text-[#D6D3D1]">Hunk #1</span>
             </div>
 
             <div>
               <span className="text-[11px] font-semibold text-[#DC2626] dark:text-[#EF4444] block mb-0.5">
                 Why Original Line Was Wrong:
               </span>
-              <p className="text-xs text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+              <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                 {hunk.why_wrong}
               </p>
             </div>
@@ -165,7 +165,7 @@ export default function PatchReviewPage() {
               <span className="text-[11px] font-semibold text-[#059669] dark:text-[#10B981] block mb-0.5">
                 Why Replacement Fixes It:
               </span>
-              <p className="text-xs text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+              <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                 {hunk.why_fix_works}
               </p>
             </div>
@@ -174,7 +174,7 @@ export default function PatchReviewPage() {
               <span className="text-[11px] font-semibold text-[#F59E0B] block mb-0.5">
                 Consequence If Not Fixed:
               </span>
-              <p className="text-xs text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+              <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                 {hunk.if_not_fixed}
               </p>
             </div>
@@ -209,10 +209,10 @@ export default function PatchReviewPage() {
           {/* Blast Radius */}
           <div className="bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg p-4 space-y-2">
             <span className="text-xs font-semibold text-[#1C1917] dark:text-[#F5F5F4] flex items-center gap-1.5 mb-1">
-              <Layers className="w-3.5 h-3.5 text-[#78716C]" />
+              <Layers className="w-3.5 h-3.5 text-[#57534E] dark:text-[#D6D3D1]" />
               Blast Radius Assessment
             </span>
-            <div className="text-xs text-[#78716C] dark:text-[#A8A29E] space-y-1">
+            <div className="text-xs text-[#57534E] dark:text-[#D6D3D1] space-y-1">
               <p>• Touches 1 file (<code className="text-[#1C1917] dark:text-[#F5F5F4]">calculator.py</code>)</p>
               <p>• Callers affected: <code className="text-[#1C1917] dark:text-[#F5F5F4]">generate_report_card</code></p>
               <p>• Risk Level: <span className="text-[#10B981] font-semibold">Low (Zero breaking changes)</span></p>

@@ -30,7 +30,7 @@ export default function LandingPage() {
             <span className="font-semibold text-base tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
               AutoPatch
             </span>
-            <span className="hidden sm:inline-block ml-2 text-xs font-mono px-2 py-0.5 rounded bg-[#FAF9F6] dark:bg-[#1C1917] text-[#78716C] dark:text-[#A8A29E] border border-[#E7E5E4] dark:border-[#292524]">
+            <span className="hidden sm:inline-block ml-2 text-xs font-mono px-2 py-0.5 rounded bg-[#FAF9F6] dark:bg-[#1C1917] text-[#57534E] dark:text-[#D6D3D1] border border-[#E7E5E4] dark:border-[#292524]">
               Build for Trust
             </span>
           </div>
@@ -38,7 +38,7 @@ export default function LandingPage() {
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <Link href="/login" className="text-xs font-medium text-[#78716C] dark:text-[#A8A29E] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] px-3 py-1.5 transition-colors">
+          <Link href="/login" className="text-xs font-medium text-[#57534E] dark:text-[#D6D3D1] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] px-3 py-1.5 transition-colors">
             Sign In
           </Link>
           <Link href="/dashboard">
@@ -62,7 +62,7 @@ export default function LandingPage() {
           <span className="text-[#0F766E] dark:text-[#14B8A6]">Backed by Concrete Test Evidence.</span>
         </h1>
 
-        <p className="text-sm sm:text-base text-[#78716C] dark:text-[#A8A29E] leading-relaxed max-w-2xl mx-auto">
+        <p className="text-sm sm:text-base text-[#57534E] dark:text-[#D6D3D1] leading-relaxed max-w-2xl mx-auto">
           AutoPatch doesn&apos;t just suggest code guesses. It reproduces defects with automated tests, isolates root causes from origin to crash lines, synthesizes minimal patches, and proves them in isolated sandboxes before you approve.
         </p>
 
@@ -80,7 +80,7 @@ export default function LandingPage() {
           </Link>
         </div>
 
-        <div className="flex items-center justify-center gap-6 pt-4 text-xs font-mono text-[#78716C] dark:text-[#A8A29E]">
+        <div className="flex items-center justify-center gap-6 pt-4 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1]">
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-[#10B981] stroke-[1.5]" /> Zero Cloud Keys Required
           </span>
@@ -96,7 +96,7 @@ export default function LandingPage() {
       {/* 5-Step Workflow Section */}
       <section className="space-y-6">
         <div className="border-b border-[#E7E5E4] dark:border-[#292524] pb-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E]">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1]">
             Autonomous 5-Stage Verification Pipeline
           </h2>
         </div>
@@ -140,12 +140,12 @@ export default function LandingPage() {
             >
               <div className="flex items-center justify-between text-xs font-mono">
                 <span className="text-[#0F766E] dark:text-[#14B8A6] font-bold">{item.step}</span>
-                <span className="text-[#A8A29E]">{item.title}</span>
+                <span className="text-[#57534E] dark:text-[#D6D3D1]">{item.title}</span>
               </div>
               <h3 className="text-xs font-semibold text-[#1C1917] dark:text-[#F5F5F4]">
                 {item.subtitle}
               </h3>
-              <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] leading-relaxed">
+              <p className="text-[11px] text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                 {item.desc}
               </p>
             </div>
@@ -157,7 +157,7 @@ export default function LandingPage() {
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E7E5E4] dark:border-[#292524] pb-3">
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E]">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1]">
               Real Defect-to-Proof Preview
             </h2>
             <p className="text-xs text-[#1C1917] dark:text-[#F5F5F4] font-medium mt-0.5">
@@ -178,7 +178,7 @@ export default function LandingPage() {
                 <AlertTriangle className="w-3.5 h-3.5 stroke-[1.5]" />
                 1. Detected Flaw
               </span>
-              <span className="text-[#A8A29E]">L5 → L12</span>
+              <span className="text-[#57534E] dark:text-[#D6D3D1]">L5 → L12</span>
             </div>
             <pre className="text-[11px] text-[#1C1917] dark:text-[#F5F5F4] overflow-x-auto leading-relaxed bg-[#FAF9F6] dark:bg-[#1C1917] p-2.5 rounded border border-[#E7E5E4] dark:border-[#292524]">
 {`def get_input(raw):
@@ -188,7 +188,7 @@ def calculate_percentage(marks, total=100.0):
     # L12: Unchecked arithmetic
     return (marks / total) * 100.0`}
             </pre>
-            <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] font-sans leading-relaxed">
+            <p className="text-[11px] text-[#57534E] dark:text-[#D6D3D1] font-sans leading-relaxed">
               Accepts negative marks (<code className="text-[#F59E0B]">-5.0</code>) and overflow scores (<code className="text-[#F59E0B]">105.0</code>), producing invalid percentages without assertion guards.
             </p>
           </div>
@@ -200,7 +200,7 @@ def calculate_percentage(marks, total=100.0):
                 <GitBranch className="w-3.5 h-3.5 stroke-[1.5]" />
                 2. Minimal Synthesized Patch
               </span>
-              <span className="text-[#A8A29E]">Candidate #1</span>
+              <span className="text-[#57534E] dark:text-[#D6D3D1]">Candidate #1</span>
             </div>
             <pre className="text-[11px] text-[#059669] dark:text-[#10B981] overflow-x-auto leading-relaxed bg-[#10B981]/[0.03] p-2.5 rounded border border-[#10B981]/20">
 {`@@ -5,3 +5,6 @@
@@ -209,7 +209,7 @@ def calculate_percentage(marks, total=100.0):
 +        raise ValueError("Invalid score")
      return (marks / total) * 100.0`}
             </pre>
-            <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E] font-sans leading-relaxed">
+            <p className="text-[11px] text-[#57534E] dark:text-[#D6D3D1] font-sans leading-relaxed">
               Non-destructive hunk addition. Guards against corrupted score entries while preserving exact function signature.
             </p>
           </div>
@@ -249,7 +249,7 @@ def calculate_percentage(marks, total=100.0):
       {/* Verification Ladder Section */}
       <section className="p-6 bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg space-y-4">
         <div>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-[#78716C] dark:text-[#A8A29E]">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-[#57534E] dark:text-[#D6D3D1]">
             The Verification Ladder (V0 – V4)
           </h2>
           <p className="text-xs text-[#1C1917] dark:text-[#F5F5F4] font-medium mt-0.5">
@@ -268,9 +268,9 @@ def calculate_percentage(marks, total=100.0):
             <div key={v.level} className="p-3 bg-[#FAF9F6] dark:bg-[#1C1917] rounded border border-[#E7E5E4] dark:border-[#292524] space-y-1">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-[#1C1917] dark:text-[#F5F5F4]">{v.level} {v.name}</span>
-                <span className="text-[10px] text-[#A8A29E]">Cap {v.cap}</span>
+                <span className="text-[10px] text-[#57534E] dark:text-[#D6D3D1]">Cap {v.cap}</span>
               </div>
-              <p className="text-[10px] text-[#78716C] dark:text-[#A8A29E] font-sans leading-relaxed">
+              <p className="text-[10px] text-[#57534E] dark:text-[#D6D3D1] font-sans leading-relaxed">
                 {v.desc}
               </p>
             </div>
@@ -279,7 +279,7 @@ def calculate_percentage(marks, total=100.0):
       </section>
 
       {/* Footer */}
-      <footer className="pt-8 border-t border-[#E7E5E4] dark:border-[#292524] flex flex-col sm:flex-row items-center justify-between text-xs text-[#78716C] dark:text-[#A8A29E] gap-4">
+      <footer className="pt-8 border-t border-[#E7E5E4] dark:border-[#292524] flex flex-col sm:flex-row items-center justify-between text-xs text-[#57534E] dark:text-[#D6D3D1] gap-4">
         <div>
           AutoPatch Autonomous Repair Engine · Apache-2.0 License
         </div>

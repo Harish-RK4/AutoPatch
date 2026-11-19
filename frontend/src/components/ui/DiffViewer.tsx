@@ -20,7 +20,7 @@ export function DiffViewer({
 
   return (
     <div className="border border-[#E7E5E4] dark:border-[#292524] rounded-lg overflow-hidden bg-white dark:bg-[#141210] font-mono text-xs">
-      <div className="bg-[#FAF9F6] dark:bg-[#1C1917] px-4 py-2 border-b border-[#E7E5E4] dark:border-[#292524] flex items-center justify-between text-xs text-[#78716C] dark:text-[#A8A29E]">
+      <div className="bg-[#FAF9F6] dark:bg-[#1C1917] px-4 py-2 border-b border-[#E7E5E4] dark:border-[#292524] flex items-center justify-between text-xs text-[#57534E] dark:text-[#D6D3D1]">
         <span className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">{filename}</span>
         <div className="flex items-center gap-4 text-[11px]">
           {originLine && (
@@ -45,7 +45,7 @@ export function DiffViewer({
       <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#E7E5E4] dark:divide-[#292524]">
         {/* Left: Original Code */}
         <div className="overflow-x-auto">
-          <div className="px-3 py-1 bg-[#FAF9F6] dark:bg-[#1C1917] text-[10px] uppercase font-bold text-[#78716C] tracking-wider border-b border-[#E7E5E4] dark:border-[#292524]">
+          <div className="px-3 py-1 bg-[#FAF9F6] dark:bg-[#1C1917] text-[10px] uppercase font-bold text-[#57534E] dark:text-[#D6D3D1] tracking-wider border-b border-[#E7E5E4] dark:border-[#292524]">
             Original Defective Code
           </div>
           <div className="py-2">
@@ -65,7 +65,7 @@ export function DiffViewer({
                       : "hover:bg-black/5 dark:hover:bg-white/5"
                   }`}
                 >
-                  <span className="w-8 text-right text-[#A8A29E] select-none pr-3 flex-shrink-0 text-[11px]">
+                  <span className="w-8 text-right text-[#57534E] dark:text-[#D6D3D1] select-none pr-3 flex-shrink-0 text-[11px]">
                     {lineNo}
                   </span>
                   <span className="text-[#1C1917] dark:text-[#F5F5F4] whitespace-pre">
@@ -96,7 +96,7 @@ export function DiffViewer({
                       : "hover:bg-black/5 dark:hover:bg-white/5 text-[#1C1917] dark:text-[#F5F5F4]"
                   }`}
                 >
-                  <span className="w-8 text-right text-[#A8A29E] select-none pr-3 flex-shrink-0 text-[11px]">
+                  <span className="w-8 text-right text-[#57534E] dark:text-[#D6D3D1] select-none pr-3 flex-shrink-0 text-[11px]">
                     {lineNo}
                   </span>
                   <span className="whitespace-pre">
