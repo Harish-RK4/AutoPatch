@@ -5,8 +5,6 @@ call hierarchies, and cyclomatic complexity.
 """
 
 import ast
-from pathlib import Path
-from typing import Any
 
 from app.indexing.models import CallGraphEdge, CodeSymbol, FileIndex
 
@@ -133,7 +131,7 @@ def index_python_code(file_path: str, source_code: str) -> FileIndex:
     loc = len(source_code.splitlines())
     try:
         tree = ast.parse(source_code, filename=file_path)
-    except SyntaxError as err:
+    except SyntaxError:
         return FileIndex(
             file_path=file_path,
             language="python",

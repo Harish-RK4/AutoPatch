@@ -5,6 +5,7 @@ with the LLM router for root-cause explanations.
 """
 
 from typing import Any
+
 from app.llm.base import LLMMessage, LLMRequest
 from app.llm.router import llm_router
 from app.scanner.models import ScanIssue
@@ -51,7 +52,7 @@ async def scan_project_files(files: list[dict[str, Any]]) -> dict[str, Any]:
                 )
             )
             explanation_summary = llm_response.content
-        except Exception:
+        except (RuntimeError, ValueError, KeyError):
             explanation_summary = "Autonomous scanner identified defect signatures across active project files."
 
     return {

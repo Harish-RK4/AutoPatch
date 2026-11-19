@@ -9,7 +9,7 @@ from app.scanner.rules import scan_javascript_code, scan_python_code
 
 __all__ = [
     "ScanIssue",
-    "scan_python_code",
     "scan_javascript_code",
     "scan_project_files",
+    "scan_python_code",
 ]

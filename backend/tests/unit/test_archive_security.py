@@ -12,6 +12,7 @@ import io
 import tempfile
 import zipfile
 from pathlib import Path
+
 import pytest
 
 from app.ingestion.archive import ArchiveSecurityViolation, SafeArchiveIngester
@@ -24,9 +25,8 @@ def test_zip_slip_traversal_rejection():
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         zf.writestr("../../etc/passwd", "root:x:0:0:root:/root:/bin/bash")
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        with pytest.raises(ArchiveSecurityViolation, match="Zip-slip path traversal"):
-            SafeArchiveIngester.validate_and_extract(zip_buffer.getvalue(), Path(tmp_dir))
+    with tempfile.TemporaryDirectory() as tmp_dir, pytest.raises(ArchiveSecurityViolation, match="Zip-slip path traversal"):
+        SafeArchiveIngester.validate_and_extract(zip_buffer.getvalue(), Path(tmp_dir))
 
 
 def test_zip_slip_absolute_path_rejection():
@@ -35,9 +35,8 @@ def test_zip_slip_absolute_path_rejection():
     with zipfile.ZipFile(zip_buffer, "w") as zf:
         zf.writestr("/rooted_file.txt", "injected malicious payload")
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        with pytest.raises(ArchiveSecurityViolation, match="Zip-slip path traversal"):
-            SafeArchiveIngester.validate_and_extract(zip_buffer.getvalue(), Path(tmp_dir))
+    with tempfile.TemporaryDirectory() as tmp_dir, pytest.raises(ArchiveSecurityViolation, match="Zip-slip path traversal"):
+        SafeArchiveIngester.validate_and_extract(zip_buffer.getvalue(), Path(tmp_dir))
 
 
 def test_zip_bomb_ratio_rejection():
@@ -48,17 +47,15 @@ def test_zip_bomb_ratio_rejection():
     with zipfile.ZipFile(zip_buffer, "w", compression=zipfile.ZIP_DEFLATED) as zf:
         zf.writestr("bomb.txt", repeated_zeros)
 
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        with pytest.raises(ArchiveSecurityViolation, match="Zip-bomb decompression ratio"):
-            SafeArchiveIngester.validate_and_extract(zip_buffer.getvalue(), Path(tmp_dir))
+    with tempfile.TemporaryDirectory() as tmp_dir, pytest.raises(ArchiveSecurityViolation, match="Zip-bomb decompression ratio"):
+        SafeArchiveIngester.validate_and_extract(zip_buffer.getvalue(), Path(tmp_dir))
 
 
 def test_malformed_zip_handling():
     """Corrupted or non-zip payloads must raise clear ArchiveSecurityViolation."""
     corrupted_bytes = b"NOT_A_VALID_ZIP_HEADER_JUST_RANDOM_BYTES"
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        with pytest.raises(ArchiveSecurityViolation, match="Malformed or corrupted zip"):
-            SafeArchiveIngester.validate_and_extract(corrupted_bytes, Path(tmp_dir))
+    with tempfile.TemporaryDirectory() as tmp_dir, pytest.raises(ArchiveSecurityViolation, match="Malformed or corrupted zip"):
+        SafeArchiveIngester.validate_and_extract(corrupted_bytes, Path(tmp_dir))
 
 
 def test_valid_polyglot_zip_extraction():

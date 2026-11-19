@@ -7,7 +7,6 @@ and logic flaw detectors (zero division, broad exception swallowing).
 import ast
 import re
 import uuid
-from typing import Any
 
 from app.scanner.models import ScanIssue
 
@@ -75,34 +74,32 @@ class PythonASTSecurityVisitor(ast.NodeVisitor):
 
     def visit_BinOp(self, node: ast.BinOp):
         # 3. Check for literal division by zero
-        if isinstance(node.op, ast.Div):
-            if isinstance(node.right, ast.Constant) and node.right.value == 0:
-                line = node.lineno
-                snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
-                self.issues.append(
-                    ScanIssue(
-                        id=f"ISSUE-{uuid.uuid4().hex[:6].upper()}",
-                        file_path=self.file_path,
-                        line_number=line,
-                        column=node.col_offset,
-                        rule_id="BUG-ZERO-DIV",
-                        severity="high",
-                        category="correctness",
-                        message="Literal division by zero guarantees a ZeroDivisionError at runtime.",
-                        snippet=snippet,
-                        cwe_id="CWE-369",
-                        suggested_fix="Guard denominator against zero before division.",
-                    )
+        if isinstance(node.op, ast.Div) and isinstance(node.right, ast.Constant) and node.right.value == 0:
+            line = node.lineno
+            snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
+            self.issues.append(
+                ScanIssue(
+                    id=f"ISSUE-{uuid.uuid4().hex[:6].upper()}",
+                    file_path=self.file_path,
+                    line_number=line,
+                    column=node.col_offset,
+                    rule_id="BUG-ZERO-DIV",
+                    severity="high",
+                    category="correctness",
+                    message="Literal division by zero guarantees a ZeroDivisionError at runtime.",
+                    snippet=snippet,
+                    cwe_id="CWE-369",
+                    suggested_fix="Guard denominator against zero before division.",
                 )
+            )
         self.generic_visit(node)
 
     def visit_ExceptHandler(self, node: ast.ExceptHandler):
         # 4. Check for bare except with pass (silent error swallowing)
-        if node.type is None:
-            if len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
-                line = node.lineno
-                snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
-                self.issues.append(
+        if node.type is None and len(node.body) == 1 and isinstance(node.body[0], ast.Pass):
+            line = node.lineno
+            snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
+            self.issues.append(
                     ScanIssue(
                         id=f"ISSUE-{uuid.uuid4().hex[:6].upper()}",
                         file_path=self.file_path,

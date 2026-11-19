@@ -217,7 +217,7 @@ export default function PatchReviewPage() {
             <div className="text-xs text-[#57534E] dark:text-[#D6D3D1] space-y-1">
               <p>• Touches 1 file (<code className="text-[#1C1917] dark:text-[#F5F5F4]">calculator.py</code>)</p>
               <p>• Callers affected: <code className="text-[#1C1917] dark:text-[#F5F5F4]">generate_report_card</code></p>
-              <p>• Risk Level: <span className="text-[#10B981] font-semibold">Low (Zero breaking changes)</span></p>
+              <p>• Risk Level: <span className="text-[#065F46] dark:text-[#34D399] font-semibold">Low (Zero breaking changes)</span></p>
             </div>
           </div>
         </div>
@@ -239,7 +239,7 @@ export default function PatchReviewPage() {
           <Button
             variant="secondary"
             onClick={() => handleDecision("needs_review")}
-            className="text-[#D97706] dark:text-[#F59E0B] border-[#F59E0B]/30"
+            className="text-[#92400E] dark:text-[#FBBF24] border-[#D97706]/30"
           >
             Needs Review
           </Button>

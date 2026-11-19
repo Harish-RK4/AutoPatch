@@ -14,7 +14,6 @@ from app.ingestion.detector import detect_file_language, is_binary_content
 
 class ArchiveSecurityViolation(RuntimeError):
     """Raised when an uploaded archive violates security boundaries (zip-slip, zip-bomb)."""
-    pass
 
 
 # Security guard limits
@@ -47,7 +46,7 @@ class SafeArchiveIngester:
             zip_buffer = io.BytesIO(archive_bytes)
             zf = zipfile.ZipFile(zip_buffer)
         except zipfile.BadZipFile as err:
-            raise ArchiveSecurityViolation(f"Malformed or corrupted zip archive: {str(err)}")
+            raise ArchiveSecurityViolation(f"Malformed or corrupted zip archive: {err!s}")
 
         entries = zf.infolist()
         if len(entries) > MAX_TOTAL_FILE_COUNT:

@@ -4,6 +4,7 @@ Orchestrates indexing across multiple project files and builds project-level cal
 """
 
 from typing import Any
+
 from app.indexing.js_indexer import index_javascript_code
 from app.indexing.models import FileIndex
 from app.indexing.python_indexer import index_python_code

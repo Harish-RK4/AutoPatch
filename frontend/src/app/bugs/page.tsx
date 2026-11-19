@@ -37,7 +37,7 @@ export default function BugsListPage() {
                 </span>
                 <Badge variant="rose">High Severity</Badge>
                 <Badge vLevel={bug.verification_level || "V4"} />
-                <span className="text-xs font-mono text-[#059669] dark:text-[#10B981] font-semibold">
+                <span className="text-xs font-mono text-[#065F46] dark:text-[#34D399] font-semibold">
                   Confidence: {bug.confidence_score}%
                 </span>
               </div>
@@ -47,8 +47,8 @@ export default function BugsListPage() {
                   <FileCode className="w-3.5 h-3.5 stroke-[1.5]" />
                   {bug.file_path}:L{bug.line_start}-L{bug.line_end}
                 </span>
-                <span>Origin: <span className="text-[#F59E0B]">L{bug.origin_line || 5}</span></span>
-                <span>Crash: <span className="text-[#EF4444]">L{bug.crash_line || 12}</span></span>
+                <span>Origin: <span className="text-[#92400E] dark:text-[#FBBF24]">L{bug.origin_line || 5}</span></span>
+                <span>Crash: <span className="text-[#B91C1C] dark:text-[#F87171]">L{bug.crash_line || 12}</span></span>
               </div>
             </div>
 

@@ -24,19 +24,19 @@ export function DiffViewer({
         <span className="font-semibold text-[#1C1917] dark:text-[#F5F5F4]">{filename}</span>
         <div className="flex items-center gap-4 text-[11px]">
           {originLine && (
-            <span className="flex items-center gap-1.5 text-[#D97706] dark:text-[#F59E0B]">
-              <span className="w-2 h-2 rounded-full bg-[#F59E0B]" />
+            <span className="flex items-center gap-1.5 text-[#92400E] dark:text-[#FBBF24]">
+              <span className="w-2 h-2 rounded-full bg-[#D97706] dark:bg-[#FBBF24]" />
               Origin Line (L{originLine})
             </span>
           )}
           {crashLine && (
-            <span className="flex items-center gap-1.5 text-[#DC2626] dark:text-[#EF4444]">
-              <span className="w-2 h-2 rounded-full bg-[#EF4444]" />
+            <span className="flex items-center gap-1.5 text-[#B91C1C] dark:text-[#F87171]">
+              <span className="w-2 h-2 rounded-full bg-[#DC2626] dark:bg-[#F87171]" />
               Crash Line (L{crashLine})
             </span>
           )}
-          <span className="flex items-center gap-1.5 text-[#059669] dark:text-[#10B981]">
-            <span className="w-2 h-2 rounded-full bg-[#10B981]" />
+          <span className="flex items-center gap-1.5 text-[#065F46] dark:text-[#34D399]">
+            <span className="w-2 h-2 rounded-full bg-[#047857] dark:bg-[#34D399]" />
             Patched Guard
           </span>
         </div>

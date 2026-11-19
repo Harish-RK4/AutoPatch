@@ -16,7 +16,6 @@ import sys
 import tempfile
 import time
 from pathlib import Path
-from typing import Any
 
 from app.sandbox.base import ExecutionResult, SandboxRunner
 
@@ -127,6 +126,7 @@ class LocalSubprocessSandboxRunner(SandboxRunner):
                 capture_output=True,
                 text=True,
                 errors="replace",
+                check=False,
                 timeout=timeout_sec,
             )
             duration_ms = (time.perf_counter() - start_time) * 1000
@@ -162,12 +162,12 @@ class LocalSubprocessSandboxRunner(SandboxRunner):
                 runner_label=self.runner_label,
                 isolation_level="process",
             )
-        except Exception as exc:
+        except (OSError, RuntimeError) as exc:
             duration_ms = (time.perf_counter() - start_time) * 1000
             return ExecutionResult(
                 exit_code=1,
                 stdout="",
-                stderr=f"Subprocess runner invocation error: {str(exc)}",
+                stderr=f"Subprocess runner invocation error: {exc!s}",
                 duration_ms=round(duration_ms, 2),
                 runner_type="local_dev",
                 runner_label=self.runner_label,

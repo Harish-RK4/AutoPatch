@@ -5,6 +5,7 @@ from JavaScript and TypeScript source files.
 """
 
 import re
+
 from app.indexing.models import CallGraphEdge, CodeSymbol, FileIndex
 
 # Patterns for JavaScript / TypeScript constructs

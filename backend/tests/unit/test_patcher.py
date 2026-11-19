@@ -9,6 +9,7 @@ Verifies:
 """
 
 import pytest
+
 from app.patcher.diff import generate_unified_diff
 from app.patcher.pipeline import run_autonomous_pipeline
 

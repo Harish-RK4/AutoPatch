@@ -19,7 +19,6 @@ from app.patcher.models import PatchCandidate, VerificationLevel
 from app.sandbox.resolver import get_sandbox_runner
 from app.scanner.engine import scan_project_files
 
-
 # In-memory stores for runtime inspection and dashboard feeding
 PROJECT_PIPELINE_RUNS: dict[str, dict[str, Any]] = {}
 ACTIVE_PATCHES: dict[str, PatchCandidate] = {}
@@ -35,7 +34,6 @@ async def run_autonomous_pipeline(
     Returns the complete pipeline run artifact with real sandbox execution timings.
     """
     runner = get_sandbox_runner()
-    start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
     # Step 1: Ingestion & File Indexing check
     code_files = [f for f in files if not f.get("is_binary") and f.get("content")]
@@ -97,7 +95,7 @@ async def run_autonomous_pipeline(
                 )
             )
             explanation = explain_resp.content
-        except Exception:
+        except (RuntimeError, ValueError, KeyError):
             explanation = f"Root cause analysis: {issue['message']} at line {issue['line_number']}."
 
         # Step 4: FIX (Synthesize Patch & Unified Diff)
@@ -106,15 +104,14 @@ async def run_autonomous_pipeline(
             f"{original_code}"
         )
         try:
-            patch_resp = await llm_router.complete(
+            await llm_router.complete(
                 LLMRequest(
                     agent_role="patcher",
                     messages=[LLMMessage(role="user", content=patch_prompt)],
                 )
             )
-            raw_patch = patch_resp.content
-        except Exception:
-            raw_patch = ""
+        except (RuntimeError, ValueError, KeyError):
+            pass
 
         # Determine patched code based on rule pattern
         patched_code = _synthesize_deterministic_fix(original_code, issue, language)
@@ -164,7 +161,7 @@ async def run_autonomous_pipeline(
             test_stderr=post_test_res.stderr,
             explanation=explanation,
             status="proposed",
-            created_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            created_at=datetime.datetime.now(datetime.UTC).isoformat(),
         )
 
         ACTIVE_PATCHES[patch_id] = candidate

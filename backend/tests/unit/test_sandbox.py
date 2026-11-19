@@ -8,14 +8,13 @@ Verifies:
 5. DockerSandboxRunner builds strict security flags (--network none, --read-only, --user 1000:1000)
 """
 
-import os
-import sys
 import pytest
+
 from app.sandbox.docker_runner import DockerSandboxRunner, DockerUnavailableError
 from app.sandbox.local_runner import (
+    DISALLOWED_SUBSTRINGS,
     LocalSubprocessSandboxRunner,
     get_scrubbed_environment,
-    DISALLOWED_SUBSTRINGS,
 )
 from app.sandbox.resolver import get_sandbox_runner
 
@@ -103,7 +102,7 @@ def test_local_runner_secret_env_scrubbing(monkeypatch):
     assert "GITHUB_TOKEN" not in scrubbed
 
     # Assert none of the scrubbed keys contain sensitive substrings
-    for key in scrubbed.keys():
+    for key in scrubbed:
         for bad in DISALLOWED_SUBSTRINGS:
             assert bad not in key.upper(), f"Leaked sensitive key: {key}"
 

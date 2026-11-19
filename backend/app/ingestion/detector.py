@@ -7,6 +7,7 @@ and flags binary/unsupported assets.
 from pathlib import Path
 from typing import NamedTuple
 
+
 class DetectionResult(NamedTuple):
     language: str
     category: str  # "code", "dataset", "config", "binary", "text"
@@ -131,8 +132,14 @@ def detect_file_language(file_path: str | Path, content_sample: bytes | None = N
                     return DetectionResult("javascript", "code", True, False, 0.95)
                 elif "bash" in first_line or "sh" in first_line:
                     return DetectionResult("shell", "code", False, False, 0.85)
-        except Exception:
-            pass
+        except (UnicodeDecodeError, IndexError, ValueError):
+            return DetectionResult(
+                language="unknown",
+                category="text",
+                is_supported_for_execution=False,
+                is_binary=False,
+                confidence=0.10,
+            )
 
     return DetectionResult(
         language="unknown",

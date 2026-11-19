@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
-import { createProject } from "@/lib/api";
+import { createProject, uploadArchive } from "@/lib/api";
 
 type TabMode = "code" | "dataset" | "paste";
 
@@ -79,12 +79,18 @@ function NewProjectForm() {
     setSelectedFile(file);
 
     const ext = file.name.split(".").pop()?.toLowerCase() || "";
-    const detectedLang = EXTENSION_MAP[ext] || "plaintext";
+    const isZip = ext === "zip";
+    const detectedLang = isZip ? "archive" : (EXTENSION_MAP[ext] || "plaintext");
     setLanguage(detectedLang);
 
     if (!projectName) {
       const baseName = file.name.replace(/\.[^/.]+$/, "");
       setProjectName(baseName.charAt(0).toUpperCase() + baseName.slice(1));
+    }
+
+    if (isZip) {
+      setFileContent(`[Binary ZIP Archive: ${file.name} - ${Math.round(file.size / 1024)} KB]`);
+      return;
     }
 
     const reader = new FileReader();
@@ -141,17 +147,22 @@ function NewProjectForm() {
     setLoading(true);
 
     try {
-      const sourceType = activeTab === "paste" ? "paste" : activeTab === "dataset" ? "dataset" : "upload";
-      const filename = selectedFile?.name || (activeTab === "paste" ? `snippet.${language === "python" ? "py" : language === "javascript" ? "js" : "txt"}` : "data.csv");
+      let created: any;
+      if (selectedFile && selectedFile.name.toLowerCase().endsWith(".zip")) {
+        created = await uploadArchive(projectName, selectedFile);
+      } else {
+        const sourceType = activeTab === "paste" ? "paste" : activeTab === "dataset" ? "dataset" : "upload";
+        const filename = selectedFile?.name || (activeTab === "paste" ? `snippet.${language === "python" ? "py" : language === "javascript" ? "js" : "txt"}` : "data.csv");
 
-      const created = await createProject({
-        name: projectName,
-        source_type: sourceType,
-        language,
-        filename,
-        content: fileContent,
-        error_trace: errorTrace
-      });
+        created = await createProject({
+          name: projectName,
+          source_type: sourceType,
+          language,
+          filename,
+          content: fileContent,
+          error_trace: errorTrace
+        });
+      }
 
       router.push(`/projects/${created.id}`);
     } catch (err: any) {

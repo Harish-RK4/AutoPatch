@@ -36,19 +36,16 @@ class SandboxRunner(ABC):
     @abstractmethod
     def runner_type(self) -> str:
         """Identifier for the runner type ('docker' or 'local_dev')."""
-        pass
 
     @property
     @abstractmethod
     def runner_label(self) -> str:
         """Human-readable runner label for UI & API transparency."""
-        pass
 
     @property
     @abstractmethod
     def isolation_level(self) -> str:
         """'container' for Docker or 'process' for local subprocess."""
-        pass
 
     @abstractmethod
     def run_command(
@@ -59,7 +56,6 @@ class SandboxRunner(ABC):
         env: dict[str, str] | None = None,
     ) -> ExecutionResult:
         """Execute a command within the isolated sandbox."""
-        pass
 
     @abstractmethod
     def execute_code(
@@ -70,4 +66,3 @@ class SandboxRunner(ABC):
         timeout_sec: float = 30.0,
     ) -> ExecutionResult:
         """Execute source code (with optional test harness) inside the sandbox."""
-        pass

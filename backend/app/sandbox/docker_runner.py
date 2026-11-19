@@ -14,7 +14,6 @@ from app.sandbox.base import ExecutionResult, SandboxRunner
 
 class DockerUnavailableError(RuntimeError):
     """Raised when Docker execution is attempted but Docker is not installed/running."""
-    pass
 
 
 class DockerSandboxRunner(SandboxRunner):
@@ -107,6 +106,7 @@ class DockerSandboxRunner(SandboxRunner):
                 docker_cmd,
                 capture_output=True,
                 text=True,
+                check=False,
                 timeout=timeout_sec,
             )
             duration_ms = (time.perf_counter() - start_time) * 1000

@@ -4,9 +4,9 @@ Security-hardened archive unpacking and polyglot language detection.
 """
 
 from app.ingestion.archive import (
+    MAX_ARCHIVE_UPLOAD_BYTES,
     ArchiveSecurityViolation,
     SafeArchiveIngester,
-    MAX_ARCHIVE_UPLOAD_BYTES,
 )
 from app.ingestion.detector import (
     DetectionResult,
@@ -15,10 +15,10 @@ from app.ingestion.detector import (
 )
 
 __all__ = [
-    "ArchiveSecurityViolation",
-    "SafeArchiveIngester",
     "MAX_ARCHIVE_UPLOAD_BYTES",
+    "ArchiveSecurityViolation",
     "DetectionResult",
+    "SafeArchiveIngester",
     "detect_file_language",
     "is_binary_content",
 ]

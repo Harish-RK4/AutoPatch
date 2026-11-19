@@ -385,3 +385,51 @@ export async function submitPatchDecision(patchId: string, action: "accept" | "r
   } catch (err) {}
   return { patch_id: patchId, action, status: "recorded" };
 }
+
+export async function uploadArchive(name: string, file: File): Promise<ProjectData> {
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("archive", file);
+
+  const res = await fetch(`${API_BASE}/api/v1/projects/upload-archive`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errData = await res.json().catch(() => ({ detail: "Upload failed" }));
+    throw new Error(errData.detail || "Archive upload failed.");
+  }
+
+  const proj = await res.json();
+
+  if (typeof window !== "undefined") {
+    try {
+      const stored = localStorage.getItem("autopatch_user_projects");
+      const list: ProjectData[] = stored ? JSON.parse(stored) : [];
+      list.unshift(proj);
+      localStorage.setItem("autopatch_user_projects", JSON.stringify(list));
+    } catch (e) {}
+  }
+
+  return proj;
+}
+
+export async function executePipeline(projectId: string): Promise<any> {
+  const res = await fetch(`${API_BASE}/api/v1/projects/${projectId}/pipeline`, {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Pipeline execution failed" }));
+    throw new Error(err.detail || "Pipeline failed.");
+  }
+  return await res.json();
+}
+
+export async function fetchAllPatches(): Promise<any[]> {
+  try {
+    const res = await fetch(`${API_BASE}/api/v1/patches`, { cache: "no-store" });
+    if (res.ok) return await res.json();
+  } catch (err) {}
+  return [];
+}

@@ -3,7 +3,7 @@ Patch Engine Models
 Defines patch candidates, verification tiers (V1-V4), and test proof metadata.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Literal
 
 VerificationLevel = Literal["V1", "V2", "V3", "V4"]

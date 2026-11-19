@@ -9,10 +9,10 @@ from app.indexing.models import CallGraphEdge, CodeSymbol, FileIndex
 from app.indexing.python_indexer import index_python_code
 
 __all__ = [
-    "CodeSymbol",
     "CallGraphEdge",
+    "CodeSymbol",
     "FileIndex",
-    "index_python_code",
-    "index_javascript_code",
     "index_files",
+    "index_javascript_code",
+    "index_python_code",
 ]

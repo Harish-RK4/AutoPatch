@@ -84,8 +84,8 @@ export default function BugDetailPage() {
             {bug.description}
           </p>
           <div className="pt-2 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1] space-y-1">
-            <p>• Origin Line: <span className="text-[#F59E0B]">Line {bug.origin_line || 5}</span> (raw input ingestion)</p>
-            <p>• Crash Line: <span className="text-[#EF4444]">Line {bug.crash_line || 12}</span> (unbounded formula execution)</p>
+            <p>• Origin Line: <span className="text-[#92400E] dark:text-[#FBBF24]">Line {bug.origin_line || 5}</span> (raw input ingestion)</p>
+            <p>• Crash Line: <span className="text-[#B91C1C] dark:text-[#F87171]">Line {bug.crash_line || 12}</span> (unbounded formula execution)</p>
             <p>• Trigger Input: <code className="text-[#1C1917] dark:text-[#F5F5F4]">{JSON.stringify(bug.trigger_input)}</code></p>
           </div>
         </div>
@@ -147,7 +147,7 @@ export default function BugDetailPage() {
             <CheckCircle2 className="w-3.5 h-3.5 text-[#10B981]" />
             4. Test Results & Proof Bundle
           </h2>
-          <ul className="space-y-1.5 text-xs text-[#059669] dark:text-[#10B981]">
+          <ul className="space-y-1.5 text-xs text-[#065F46] dark:text-[#34D399]">
             <li className="flex items-center gap-2">
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>Reproduction test fails before and passes after patch</span>
@@ -170,9 +170,9 @@ export default function BugDetailPage() {
               5. Severity & Confidence
             </h2>
             <div className="flex items-center gap-3 text-xs font-mono">
-              <span>Severity: <span className="text-[#EF4444] font-semibold">8.0 / 10 (High)</span></span>
+              <span>Severity: <span className="text-[#B91C1C] dark:text-[#F87171] font-semibold">8.0 / 10 (High)</span></span>
               <span>•</span>
-              <span>Confidence: <span className="text-[#10B981] font-semibold">100% (V4 Proven)</span></span>
+              <span>Confidence: <span className="text-[#065F46] dark:text-[#34D399] font-semibold">100% (V4 Proven)</span></span>
             </div>
           </div>
 
@@ -182,7 +182,7 @@ export default function BugDetailPage() {
               6. Change History
             </h2>
             <p className="text-xs text-[#57534E] dark:text-[#D6D3D1]">
-              Detected during automated pipeline run. State: <span className="text-[#10B981] font-medium uppercase font-mono">Confirmed</span>
+              Detected during automated pipeline run. State: <span className="text-[#065F46] dark:text-[#34D399] font-medium uppercase font-mono">Confirmed</span>
             </p>
           </div>
         </div>

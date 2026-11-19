@@ -29,7 +29,7 @@ export class AuthManager {
     try {
       const stored = localStorage.getItem(SESSION_KEY);
       if (stored) return JSON.parse(stored);
-    } catch (e) {}
+    } catch (e) { }
     return null;
   }
 

@@ -103,7 +103,22 @@ export default function DashboardPage() {
   const v2Ratio = totalBugs > 0 ? Math.round((v2Count / totalBugs) * 1000) / 10 : 0;
   const v1Ratio = totalBugs > 0 ? Math.round((v1Count / totalBugs) * 1000) / 10 : 0;
 
-  const avgSandboxLatency = totalProjects > 0 ? "234ms" : "0ms";
+  // Real measured sandbox duration from pipeline runs or demo seed
+  const measuredSandboxLatency = useMemo(() => {
+    if (totalProjects === 0) return "0ms";
+    const runsWithTime = projects.filter((p: any) => p.last_pipeline_run?.total_sandbox_duration_ms);
+    if (runsWithTime.length > 0) {
+      const totalMs = runsWithTime.reduce((acc: number, p: any) => acc + (p.last_pipeline_run.total_sandbox_duration_ms || 0), 0);
+      return `${Math.round(totalMs / runsWithTime.length)}ms`;
+    }
+    return isDemoActive ? "234ms" : "0ms";
+  }, [totalProjects, projects, isDemoActive]);
+
+  const runnerBadgeLabel = useMemo(() => {
+    const hasLocalDevRun = projects.some((p: any) => p.last_pipeline_run?.runner_type === "local_dev");
+    if (hasLocalDevRun) return "Local Subprocess";
+    return isDemoActive ? "Docker" : "Sandbox";
+  }, [projects, isDemoActive]);
 
   // Dynamic Sparkline arrays derived from real data counts
   const sparklineProjects = useMemo(() => {
@@ -522,10 +537,10 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-baseline gap-2 mt-1">
               <span className="text-2xl font-bold font-mono tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
-                {avgSandboxLatency}
+                {measuredSandboxLatency}
               </span>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-black/5 dark:bg-white/10 text-[#1C1917] dark:text-[#F5F5F4] font-semibold">
-                Docker
+                {runnerBadgeLabel}
               </span>
             </div>
             <p className="text-[11px] text-[#78716C] dark:text-[#A8A29E]">P95 execution latency</p>

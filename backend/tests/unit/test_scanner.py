@@ -10,6 +10,7 @@ Verifies:
 """
 
 import pytest
+
 from app.scanner.rules import scan_javascript_code, scan_python_code
 
 

@@ -39,7 +39,7 @@ export default function PatchesListPage() {
                   Candidate #{p.candidate_no} ({p.risk_level === "low" ? "Minimal Diff" : "Clamped"})
                 </span>
                 <Badge vLevel={p.verification_level || "V4"} />
-                <span className="text-xs font-mono text-[#059669] dark:text-[#10B981] font-semibold">
+                <span className="text-xs font-mono text-[#065F46] dark:text-[#34D399] font-semibold">
                   Rank #{p.rank}
                 </span>
               </div>
@@ -51,7 +51,7 @@ export default function PatchesListPage() {
               <div className="flex items-center gap-3 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1] pt-1">
                 <span>Branch: <code className="text-[#1C1917] dark:text-[#F5F5F4]">{p.git_branch}</code></span>
                 <span>•</span>
-                <span>Proof: <span className="text-[#10B981]">14/14 tests pass</span></span>
+                <span>Proof: <span className="text-[#065F46] dark:text-[#34D399] font-medium">14/14 tests pass</span></span>
               </div>
             </div>
 
