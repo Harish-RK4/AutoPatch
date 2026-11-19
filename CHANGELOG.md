@@ -4,6 +4,35 @@ All notable changes to AutoPatch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Phase P4 - Universal Dataset Engine Complete] - 2026-11-19
+
+### Added
+- **Multi-Format Dataset Profiler (`app.dataset.profiler`)**:
+  - Polyglot format sniffer supporting CSV, TSV, JSON, JSONL, SQLite, XML, YAML, TOML, and text tables.
+  - Computes comprehensive column profiles: schema snapshot, data types, null rates, uniqueness ratios, numerical quartiles & bounds, and date format conventions.
+  - Large file chunking and representative sampling (up to 5,000 rows) for datasets exceeding 10,000 rows while tracking exact total row counts.
+- **Flaw & Quality Anomaly Detector (`app.dataset.detector`)**:
+  - Identifies 11 defect types: missing values/null sentinels, wrong/mixed types, duplicate rows, out-of-bounds domain bounds, statistical IQR outliers, inconsistent casing, mixed date conventions, broken dates, and schema drift.
+  - Ambiguous cases (extreme statistical outliers beyond 1.5x IQR) flagged explicitly as `needs_human_decision=True` with sample evidence rows to avoid silent data destruction.
+- **Idempotent Python & Pandas Cleaning Script Generator (`app.dataset.cleaner`)**:
+  - Strictly non-destructive architecture: original dataset files are NEVER modified.
+  - Generates standalone, transparent, repeatable Python/pandas transformation scripts normalizing dates to ISO 8601, imputing missing values with statistical medians/modes, clamping boundary violations, and deduplicating records.
+  - Generates detailed row-level before/after diffs (`ChangedRow`) auditing every modified cell.
+- **Formal Invariant Verification Engine (`app.dataset.invariants`)**:
+  - Enforces four strict mathematical invariants:
+    1. *Row Lineage*: Every output row traces to an input row or documented deduplication drop (`output_rows <= input_rows`).
+    2. *Cell Identity*: Untouched valid cells remain byte-identical to original inputs.
+    3. *Idempotency*: Re-executing the cleaning script on cleaned output yields identical state (`clean(clean(D)) == clean(D)`).
+    4. *Validation Rules*: Generated schema constraints (e.g. non-negative scores, ISO date patterns, primary key uniqueness) pass 100%.
+  - High-confidence verification ladder capping: assigns `V4 (Proven)` when all invariants hold.
+- **Interactive Dataset Review Screen (`/projects/[id]/dataset`)**:
+  - Four verification invariant pulse cards showcasing real-time mathematical proof status.
+  - Four-tab inspection view: Row Lineage Diff table with cell-level change highlighting, Discovered Anomalies table with human decision flags, Side-by-Side Before/After Profile, and Repeatable Script Viewer with syntax highlighting and 1-click copy/download.
+  - Export capabilities for verified clean dataset copies and standalone Python cleaning scripts.
+- **Test Suite Expansion**:
+  - 90 backend pytest tests passing with 100% clean Ruff linting.
+  - Full frontend TypeScript type-checking passing with 0 errors.
+
 ## [Phase P3 - Free LLM Router Complete] - 2026-11-19
 
 ### Added

@@ -8,7 +8,7 @@ AutoPatch is implemented across 10 progressive phases, gated by clean-room verif
 | **P1** | Core Ingestion & Analysis | Completed | Real file upload, tree-sitter AST, Semgrep/Bandit scan, sandbox execution. |
 | **P2** | Trust & Verification Ladder | Completed | Multi-candidate generation, Critic agent, Reproducer, Blast radius, V0-V4 confidence capping. |
 | **P3** | Free LLM Router Complete | Completed | Multi-provider adapters (Gemini, Groq, Ollama), fallback chain, rate limiting, cache, settings UI. |
-| **P4** | Universal Dataset Engine | Planned | CSV/JSON/Parquet profiling, cleaning scripts, Great Expectations invariants. |
+| **P4** | Universal Dataset Engine | Completed | Deep profiling, anomaly detection, idempotent Python scripts, formal invariant verification, dataset review UI. |
 | **P5** | Fix Explanation Engine | Planned | Crash vs Origin line isolation, backward slice, hunk cards, 3 explanation modes. |
 | **P6** | Supabase Persistence & RLS | Planned | Production PostgreSQL cutover, RLS policies, Storage buckets, Realtime events. |
 | **P7** | FCM Push Notifications | Planned | Web push service worker, background notifications, user preference toggles. |
