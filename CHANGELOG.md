@@ -4,6 +4,24 @@ All notable changes to AutoPatch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Phase P6 - Supabase Swap] - 2026-11-19
+
+### Added
+- **Pluggable Frontend Auth Provider Architecture (`frontend/src/lib/authProvider.ts`)**:
+  - Clean `IAuthProvider` abstraction allowing hot-swapping between `DemoAuthProvider` and `SupabaseAuthProvider` based on `NEXT_PUBLIC_AUTH_MODE`.
+  - Comprehensive authentication handling including session restoration, user sign-in, user registration, and sign-out.
+  - Retains zero-configuration 1-click Demo Mode access while enabling real Supabase cloud auth when keys are supplied.
+- **Asynchronous Supabase PostgREST & Storage Repository (`backend/app/db/supabase.py`)**:
+  - `SupabaseRepository` supporting asynchronous PostgREST CRUD operations (`insert_record`, `fetch_records`) and artifact storage uploads (`upload_storage_artifact`).
+  - Resilient fail-soft architecture: in-memory mock repository fallback when Supabase URL or Service Key are absent, guaranteeing uninterrupted local test execution.
+  - Non-blocking HTTP client with explicit timeout controls and typed error handling.
+- **Supabase Connectivity & Diagnostic Endpoints (`backend/app/api/routes_settings.py`)**:
+  - `GET /settings/supabase`: Diagnostic telemetry exposing URL configuration, key presence, and auth mode.
+  - `POST /settings/supabase/test`: Live round-trip connectivity probe measuring real-world latency or verifying mock readiness.
+- **Unit Test Suite Verification**:
+  - Added `backend/tests/unit/test_supabase_repo.py` verifying fallback in-memory behavior, mocked network interactions, and public artifact URL resolution.
+  - 98 backend pytest tests passing with 100% clean Ruff linting.
+
 ## [Phase P5 - Fix Explanation Engine Complete] - 2026-11-19
 
 ### Added
