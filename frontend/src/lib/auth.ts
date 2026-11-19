@@ -1,6 +1,6 @@
 /**
  * Client Session and Authentication Manager
- * Supports regular accounts and demo accounts with session persistence.
+ * Secure JWT session synchronization and inspection for Supabase Auth.
  */
 
 export interface AuthUser {
@@ -8,18 +8,11 @@ export interface AuthUser {
   email: string;
   fullName: string;
   name?: string;
+  avatarUrl?: string;
   role: "developer" | "owner" | "viewer";
-  isDemo: boolean;
+  authProvider?: string;
+  isDemo?: boolean;
 }
-
-export const DEMO_USER: AuthUser = {
-  id: "demo-user-001",
-  email: "demo@autopatch.dev",
-  fullName: "Demo Developer",
-  name: "Demo Developer",
-  role: "developer",
-  isDemo: true
-};
 
 const SESSION_KEY = "autopatch_session";
 
@@ -29,57 +22,15 @@ export class AuthManager {
     try {
       const stored = localStorage.getItem(SESSION_KEY);
       if (stored) return JSON.parse(stored);
-    } catch (e) { }
+    } catch (e) {}
     return null;
   }
 
-  static signIn(email: string, pass: string): AuthUser | null {
-    if (email === "demo@autopatch.dev" && pass === "Demo@1234") {
-      return this.loginDemo();
-    }
-    // Simple client authentication for testing phase
-    if (email && pass && pass.length >= 4) {
-      const name = email.split("@")[0];
-      const user: AuthUser = {
-        id: `user-${Date.now().toString(36)}`,
-        email,
-        fullName: name.charAt(0).toUpperCase() + name.slice(1),
-        role: "developer",
-        isDemo: false
-      };
-      if (typeof window !== "undefined") {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-        document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
-      }
-      return user;
-    }
-    return null;
-  }
-
-  static signUp(fullName: string, email: string, pass: string): AuthUser | null {
-    if (email && pass && pass.length >= 4) {
-      const user: AuthUser = {
-        id: `user-${Date.now().toString(36)}`,
-        email,
-        fullName: fullName || email.split("@")[0],
-        role: "developer",
-        isDemo: false
-      };
-      if (typeof window !== "undefined") {
-        localStorage.setItem(SESSION_KEY, JSON.stringify(user));
-        document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
-      }
-      return user;
-    }
-    return null;
-  }
-
-  static loginDemo(): AuthUser {
+  static setSession(user: AuthUser): void {
     if (typeof window !== "undefined") {
-      localStorage.setItem(SESSION_KEY, JSON.stringify(DEMO_USER));
+      localStorage.setItem(SESSION_KEY, JSON.stringify(user));
       document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
     }
-    return DEMO_USER;
   }
 
   static signOut(): void {
@@ -97,4 +48,3 @@ export class AuthManager {
     return this.getSession() !== null;
   }
 }
-
