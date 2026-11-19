@@ -40,8 +40,8 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Model IDs
-    GEMINI_MODEL: str = "gemini-1.5-flash"
-    GROQ_MODEL: str = "llama-3.1-70b-versatile"
+    GEMINI_MODEL: str = "gemini-3.5-flash-lite"
+    GROQ_MODEL: str = "qwen/qwen3.8-27b"
     OPENROUTER_MODEL: str = "meta-llama/llama-3.1-8b-instruct:free"
     MISTRAL_CODE_MODEL: str = "codestral-latest"
     OLLAMA_MODEL: str = "qwen2.5-coder:7b"
