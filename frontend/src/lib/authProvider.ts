@@ -150,6 +150,37 @@ export class SupabaseAuthProvider implements IAuthProvider {
     });
 
     if (error || !data.user) {
+      const msg = error?.message || "";
+      // If user exists but email not confirmed, auto-confirm via server route and retry
+      if (msg.includes("Email not confirmed") || msg.includes("Invalid login credentials")) {
+        try {
+          const confirmRes = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password: pass, full_name: email.split("@")[0] }),
+          });
+          if (confirmRes.ok) {
+            // Retry sign-in after auto-confirm
+            const retry = await this.supabase.auth.signInWithPassword({ email, password: pass });
+            if (retry.data?.user) {
+              const retryUser: AuthUser = {
+                id: retry.data.user.id,
+                email: retry.data.user.email || email,
+                fullName: retry.data.user.user_metadata?.full_name || email.split("@")[0],
+                role: (retry.data.user.user_metadata?.role as any) || "developer",
+                isDemo: false,
+              };
+              if (typeof window !== "undefined") {
+                localStorage.setItem("autopatch_session", JSON.stringify(retryUser));
+                document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+              }
+              return { user: retryUser, error: null };
+            }
+          }
+        } catch (_) {
+          // Fall through to original error
+        }
+      }
       return { user: null, error: error?.message || "Authentication failed." };
     }
 
@@ -219,9 +250,38 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return { user: null, error: "Supabase credentials missing in .env." };
     }
 
+    // Strategy: Use server-side Admin API routes ONLY (never supabase.auth.signUp which triggers emails)
+    // Priority 1: Next.js server-side API route (uses SUPABASE_SERVICE_ROLE_KEY)
+    // Priority 2: FastAPI backend route
+    // NEVER fall back to supabase.auth.signUp() — it triggers SMTP and hits rate limits
+
+    // Try Next.js server-side route first (keeps service role key on server)
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: pass, full_name: fullName }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.status === "exists") {
+          // User already exists — try signing in directly
+          return await this.signIn(email, pass);
+        }
+        // Successfully created/confirmed — sign in
+        return await this.signIn(email, pass);
+      }
+      const errJson = await res.json().catch(() => ({}));
+      if (errJson.error && !errJson.error.includes("not configured")) {
+        return { user: null, error: errJson.error };
+      }
+    } catch (_) {
+      // Next.js route unreachable, try FastAPI backend
+    }
+
+    // Fallback: Try FastAPI backend route
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
     try {
-      // Attempt server-side registration using admin service role to auto-confirm email
       const res = await fetch(`${apiBase}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -229,29 +289,19 @@ export class SupabaseAuthProvider implements IAuthProvider {
       });
       if (res.ok) {
         return await this.signIn(email, pass);
-      } else {
-        const errJson = await res.json().catch(() => ({}));
-        if (errJson.detail) {
-          return { user: null, error: errJson.detail };
-        }
       }
-    } catch (e) {
-      // Fallback to client SDK
+      const errJson = await res.json().catch(() => ({}));
+      if (errJson.detail) {
+        return { user: null, error: errJson.detail };
+      }
+    } catch (_) {
+      // FastAPI backend also unreachable
     }
 
-    const { data, error } = await this.supabase.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        data: { full_name: fullName, role: "developer" },
-      },
-    });
-
-    if (error || !data.user) {
-      return { user: null, error: error?.message || "Sign up failed." };
-    }
-
-    return await this.signIn(email, pass);
+    return {
+      user: null,
+      error: "Registration service unavailable. Please use 'Sign In' if you already have an account, or try again shortly.",
+    };
   }
 
   async signOut(): Promise<void> {
