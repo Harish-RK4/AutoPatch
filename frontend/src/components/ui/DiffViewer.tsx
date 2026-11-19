@@ -44,7 +44,7 @@ export function DiffViewer({
 
       <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-[#E7E5E4] dark:divide-[#292524]">
         {/* Left: Original Code */}
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Original defective source code">
           <div className="px-3 py-1 bg-[#FAF9F6] dark:bg-[#1C1917] text-[10px] uppercase font-bold text-[#57534E] dark:text-[#D6D3D1] tracking-wider border-b border-[#E7E5E4] dark:border-[#292524]">
             Original Defective Code
           </div>
@@ -78,8 +78,8 @@ export function DiffViewer({
         </div>
 
         {/* Right: Patched Code */}
-        <div className="overflow-x-auto bg-[#10B981]/[0.02]">
-          <div className="px-3 py-1 bg-[#FAF9F6] dark:bg-[#1C1917] text-[10px] uppercase font-bold text-[#059669] dark:text-[#10B981] tracking-wider border-b border-[#E7E5E4] dark:border-[#292524]">
+        <div className="overflow-x-auto bg-[#10B981]/[0.02]" tabIndex={0} role="region" aria-label="Synthesized patched source code">
+          <div className="px-3 py-1 bg-[#FAF9F6] dark:bg-[#1C1917] text-[10px] uppercase font-bold text-[#047857] dark:text-[#34D399] tracking-wider border-b border-[#E7E5E4] dark:border-[#292524]">
             Synthesized Patch (Candidate 1 - Minimal Diff)
           </div>
           <div className="py-2">
@@ -92,7 +92,7 @@ export function DiffViewer({
                   key={`patch-${lineNo}`}
                   className={`flex items-start px-2 py-0.5 leading-relaxed ${
                     isNew
-                      ? "bg-[#10B981]/15 border-l-2 border-[#10B981] text-[#059669] dark:text-[#10B981] font-semibold"
+                      ? "bg-[#10B981]/15 border-l-2 border-[#10B981] text-[#047857] dark:text-[#34D399] font-semibold"
                       : "hover:bg-black/5 dark:hover:bg-white/5 text-[#1C1917] dark:text-[#F5F5F4]"
                   }`}
                 >

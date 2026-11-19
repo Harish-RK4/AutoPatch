@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { 
   ArrowLeft, 
   CheckCircle2, 
@@ -48,12 +49,13 @@ export default function PatchReviewPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E7E5E4] dark:border-[#292524]">
         <div className="flex items-center gap-3">
-          <a
+          <Link
             href="/projects/demo-proj-001"
+            aria-label="Back to project workspace"
             className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 text-[#57534E] dark:text-[#D6D3D1]"
           >
             <ArrowLeft className="w-4 h-4" />
-          </a>
+          </Link>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-base font-bold text-[#1C1917] dark:text-[#F5F5F4]">
@@ -125,13 +127,13 @@ export default function PatchReviewPage() {
                 </p>
               </div>
               <div className="p-3 bg-[#FAF9F6] dark:bg-[#1C1917] rounded border border-[#E7E5E4] dark:border-[#292524]">
-                <span className="font-semibold text-[#F59E0B] block mb-1">Beginner Analogy:</span>
+                <span className="font-semibold text-[#B45309] dark:text-[#FBBF24] block mb-1">Beginner Analogy:</span>
                 <p className="text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                   {bug.root_cause?.beginner}
                 </p>
               </div>
               <div className="p-3 bg-[#FAF9F6] dark:bg-[#1C1917] rounded border border-[#E7E5E4] dark:border-[#292524]">
-                <span className="font-semibold text-[#10B981] block mb-1">Manager Summary:</span>
+                <span className="font-semibold text-[#047857] dark:text-[#34D399] block mb-1">Manager Summary:</span>
                 <p className="text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
                   {bug.root_cause?.manager}
                 </p>
@@ -162,7 +164,7 @@ export default function PatchReviewPage() {
             </div>
 
             <div>
-              <span className="text-[11px] font-semibold text-[#059669] dark:text-[#10B981] block mb-0.5">
+              <span className="text-[11px] font-semibold text-[#047857] dark:text-[#34D399] block mb-0.5">
                 Why Replacement Fixes It:
               </span>
               <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
@@ -171,7 +173,7 @@ export default function PatchReviewPage() {
             </div>
 
             <div>
-              <span className="text-[11px] font-semibold text-[#F59E0B] block mb-0.5">
+              <span className="text-[11px] font-semibold text-[#B45309] dark:text-[#FBBF24] block mb-0.5">
                 Consequence If Not Fixed:
               </span>
               <p className="text-xs text-[#57534E] dark:text-[#D6D3D1] leading-relaxed">
@@ -184,22 +186,22 @@ export default function PatchReviewPage() {
           <div className="bg-white dark:bg-[#141210] border border-[#E7E5E4] dark:border-[#292524] rounded-lg p-4 space-y-3">
             <div className="flex items-center justify-between pb-2 border-b border-[#E7E5E4] dark:border-[#292524]">
               <span className="text-xs font-semibold text-[#1C1917] dark:text-[#F5F5F4] flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" />
+                <ShieldCheck className="w-3.5 h-3.5 text-[#047857] dark:text-[#34D399]" />
                 Proof-Carrying Bundle
               </span>
               <Badge vLevel="V4" />
             </div>
 
             <ul className="space-y-2 text-xs">
-              <li className="flex items-center gap-2 text-[#059669] dark:text-[#10B981]">
+              <li className="flex items-center gap-2 text-[#047857] dark:text-[#34D399]">
                 <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>Repro test fails before & passes after patch</span>
               </li>
-              <li className="flex items-center gap-2 text-[#059669] dark:text-[#10B981]">
+              <li className="flex items-center gap-2 text-[#047857] dark:text-[#34D399]">
                 <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>14/14 existing test suite cases pass</span>
               </li>
-              <li className="flex items-center gap-2 text-[#059669] dark:text-[#10B981]">
+              <li className="flex items-center gap-2 text-[#047857] dark:text-[#34D399]">
                 <CheckCircle2 className="w-3.5 h-3.5 flex-shrink-0" />
                 <span>Static scan clean (0 Semgrep / Bandit alerts)</span>
               </li>

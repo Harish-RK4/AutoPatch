@@ -43,6 +43,7 @@ export default function BugDetailPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/bugs"
+            aria-label="Back to detected flaws list"
             className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 text-[#57534E] dark:text-[#D6D3D1]"
           >
             <ArrowLeft className="w-4 h-4" />
