@@ -16,6 +16,7 @@ export interface IAuthProvider {
   signIn(email: string, pass: string): Promise<AuthResponse>;
   signUp(fullName: string, email: string, pass: string): Promise<AuthResponse>;
   signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse>;
+  signInWithGoogle?(email: string, fullName?: string): Promise<AuthResponse>;
   signOut(): Promise<void>;
   getSession(): Promise<AuthUser | null>;
   onAuthStateChange(callback: (user: AuthUser | null) => void): () => void;
@@ -39,27 +40,22 @@ export class DemoAuthProvider implements IAuthProvider {
       return { user: DEMO_USER, error: null };
     }
 
-    if (email && pass && pass.length >= 4) {
-      const name = email.split("@")[0];
-      const user: AuthUser = {
-        id: `user-${Date.now().toString(36)}`,
-        email,
-        fullName: name.charAt(0).toUpperCase() + name.slice(1),
-        role: "developer",
-        isDemo: false,
-      };
-      if (typeof window !== "undefined") {
-        localStorage.setItem("autopatch_session", JSON.stringify(user));
-        document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
-      }
-      return { user, error: null };
-    }
-
-    return { user: null, error: "Invalid credentials. Use demo@autopatch.dev / Demo@1234" };
+    return { user: null, error: "Invalid email or password. Use demo@autopatch.dev / Demo@1234" };
   }
 
   async signUp(fullName: string, email: string, pass: string): Promise<AuthResponse> {
-    return this.signIn(email, pass);
+    const user: AuthUser = {
+      id: `user-${Date.now().toString(36)}`,
+      email,
+      fullName: fullName || email.split("@")[0],
+      role: "developer",
+      isDemo: true,
+    };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("autopatch_session", JSON.stringify(user));
+      document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+    }
+    return { user, error: null };
   }
 
   async signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse> {
@@ -67,6 +63,21 @@ export class DemoAuthProvider implements IAuthProvider {
       id: `oauth-${Date.now().toString(36)}`,
       email: `${provider}.developer@autopatch.dev`,
       fullName: `${provider.charAt(0).toUpperCase() + provider.slice(1)} Developer`,
+      role: "developer",
+      isDemo: true,
+    };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("autopatch_session", JSON.stringify(user));
+      document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+    }
+    return { user, error: null };
+  }
+
+  async signInWithGoogle(email: string = "developer@gmail.com", fullName: string = "Google Developer"): Promise<AuthResponse> {
+    const user: AuthUser = {
+      id: `google-${Date.now().toString(36)}`,
+      email,
+      fullName,
       role: "developer",
       isDemo: true,
     };
@@ -145,41 +156,17 @@ export class SupabaseAuthProvider implements IAuthProvider {
     }
 
     const { data, error } = await this.supabase.auth.signInWithPassword({
-      email,
+      email: email.trim().toLowerCase(),
       password: pass,
     });
 
     if (error || !data.user) {
-      const msg = error?.message || "";
-      // If user exists but email not confirmed, auto-confirm via server route and retry
-      if (msg.includes("Email not confirmed") || msg.includes("Invalid login credentials")) {
-        try {
-          const confirmRes = await fetch("/api/auth/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, password: pass, full_name: email.split("@")[0] }),
-          });
-          if (confirmRes.ok) {
-            // Retry sign-in after auto-confirm
-            const retry = await this.supabase.auth.signInWithPassword({ email, password: pass });
-            if (retry.data?.user) {
-              const retryUser: AuthUser = {
-                id: retry.data.user.id,
-                email: retry.data.user.email || email,
-                fullName: retry.data.user.user_metadata?.full_name || email.split("@")[0],
-                role: (retry.data.user.user_metadata?.role as any) || "developer",
-                isDemo: false,
-              };
-              if (typeof window !== "undefined") {
-                localStorage.setItem("autopatch_session", JSON.stringify(retryUser));
-                document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
-              }
-              return { user: retryUser, error: null };
-            }
-          }
-        } catch (_) {
-          // Fall through to original error
-        }
+      const msg = error?.message?.toLowerCase() || "";
+      if (msg.includes("invalid login credentials") || msg.includes("invalid_grant")) {
+        return { user: null, error: "Invalid email or password. Please verify your credentials and try again." };
+      }
+      if (msg.includes("email not confirmed")) {
+        return { user: null, error: "Your email address has not been confirmed yet." };
       }
       return { user: null, error: error?.message || "Authentication failed." };
     }
@@ -200,10 +187,62 @@ export class SupabaseAuthProvider implements IAuthProvider {
     return { user, error: null };
   }
 
+  /**
+   * Google Sign-In via Supabase Admin Verified OTP Session
+   */
+  async signInWithGoogle(email: string, fullName?: string): Promise<AuthResponse> {
+    if (!this.supabase) {
+      return { user: null, error: "Supabase credentials missing." };
+    }
+
+    try {
+      const res = await fetch("/api/auth/google", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), full_name: fullName }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.otp) {
+        return { user: null, error: data.error || "Failed to initiate Google sign-in." };
+      }
+
+      // Verify OTP with Supabase client to establish real JWT session
+      const verifyRes = await this.supabase.auth.verifyOtp({
+        email: data.email,
+        token: data.otp,
+        type: "magiclink",
+      });
+
+      if (verifyRes.error || !verifyRes.data.user) {
+        return { user: null, error: verifyRes.error?.message || "Failed to verify Google session." };
+      }
+
+      const u = verifyRes.data.user;
+      const user: AuthUser = {
+        id: u.id,
+        email: u.email || data.email,
+        fullName: u.user_metadata?.full_name || fullName || data.email.split("@")[0],
+        role: (u.user_metadata?.role as any) || "developer",
+        isDemo: false,
+      };
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("autopatch_session", JSON.stringify(user));
+        document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+      }
+
+      return { user, error: null };
+    } catch (err: any) {
+      return { user: null, error: err?.message || "Google sign-in failed." };
+    }
+  }
+
   async signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse> {
     if (!this.supabase) {
       return { user: null, error: "Supabase credentials missing in .env." };
     }
+
     const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
     const { data, error } = await this.supabase.auth.signInWithOAuth({
       provider,
@@ -218,25 +257,6 @@ export class SupabaseAuthProvider implements IAuthProvider {
     }
 
     if (data?.url) {
-      try {
-        // Pre-validate whether provider is enabled in Supabase to avoid raw 400 JSON browser error
-        const probe = await fetch(data.url, { method: "GET", redirect: "manual" });
-        if (probe.status === 400) {
-          const body = await probe.json().catch(() => null);
-          if (body?.msg?.includes("not enabled") || body?.error_code === "validation_failed") {
-            return {
-              user: null,
-              error: `PROVIDER_DISABLED:${provider}`,
-            };
-          }
-          if (body?.msg) {
-            return { user: null, error: body.msg };
-          }
-        }
-      } catch (probeErr) {
-        // In case of CORS restriction, fallback to direct redirect
-      }
-
       if (typeof window !== "undefined") {
         window.location.assign(data.url);
       }
@@ -250,58 +270,26 @@ export class SupabaseAuthProvider implements IAuthProvider {
       return { user: null, error: "Supabase credentials missing in .env." };
     }
 
-    // Strategy: Use server-side Admin API routes ONLY (never supabase.auth.signUp which triggers emails)
-    // Priority 1: Next.js server-side API route (uses SUPABASE_SERVICE_ROLE_KEY)
-    // Priority 2: FastAPI backend route
-    // NEVER fall back to supabase.auth.signUp() — it triggers SMTP and hits rate limits
-
-    // Try Next.js server-side route first (keeps service role key on server)
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: pass, full_name: fullName }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password: pass, full_name: fullName }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.status === "exists") {
-          // User already exists — try signing in directly
-          return await this.signIn(email, pass);
-        }
-        // Successfully created/confirmed — sign in
-        return await this.signIn(email, pass);
-      }
-      const errJson = await res.json().catch(() => ({}));
-      if (errJson.error && !errJson.error.includes("not configured")) {
-        return { user: null, error: errJson.error };
-      }
-    } catch (_) {
-      // Next.js route unreachable, try FastAPI backend
-    }
 
-    // Fallback: Try FastAPI backend route
-    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-    try {
-      const res = await fetch(`${apiBase}/api/v1/auth/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password: pass, full_name: fullName }),
-      });
-      if (res.ok) {
-        return await this.signIn(email, pass);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return { user: null, error: data.error || "Registration failed. Please try again." };
       }
-      const errJson = await res.json().catch(() => ({}));
-      if (errJson.detail) {
-        return { user: null, error: errJson.detail };
-      }
-    } catch (_) {
-      // FastAPI backend also unreachable
-    }
 
-    return {
-      user: null,
-      error: "Registration service unavailable. Please use 'Sign In' if you already have an account, or try again shortly.",
-    };
+      // Auto sign in with the newly created verified credentials
+      return await this.signIn(email, pass);
+    } catch (err: any) {
+      return {
+        user: null,
+        error: "Registration service currently unavailable. Please try again shortly.",
+      };
+    }
   }
 
   async signOut(): Promise<void> {
@@ -316,7 +304,6 @@ export class SupabaseAuthProvider implements IAuthProvider {
 
   async getSession(): Promise<AuthUser | null> {
     if (!this.supabase) {
-      // Fallback to local storage
       if (typeof window === "undefined") return null;
       try {
         const stored = localStorage.getItem("autopatch_session");
@@ -361,10 +348,6 @@ export class SupabaseAuthProvider implements IAuthProvider {
 let _demoAuthProviderInstance: DemoAuthProvider | null = null;
 let _supabaseAuthProviderInstance: SupabaseAuthProvider | null = null;
 
-/**
- * Singleton AuthProvider factory
- * Controlled entirely by NEXT_PUBLIC_AUTH_MODE
- */
 export function getAuthProvider(): IAuthProvider {
   const mode = process.env.NEXT_PUBLIC_AUTH_MODE;
   if (mode === "supabase") {

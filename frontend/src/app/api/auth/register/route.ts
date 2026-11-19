@@ -1,8 +1,7 @@
 /**
  * Next.js Server-Side Registration API Route
- * Uses SUPABASE_SERVICE_ROLE_KEY (server-only env var) to register users
- * via the Supabase Admin API with auto-confirmed email.
- * This completely bypasses the free-tier SMTP email rate limit.
+ * Uses SUPABASE_SERVICE_ROLE_KEY to register users via Supabase Admin API
+ * with email_confirm: true, avoiding free-tier SMTP email rate limits.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -28,22 +27,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
     }
 
+    if (password.length < 6) {
+      return NextResponse.json({ error: "Password must be at least 6 characters long." }, { status: 400 });
+    }
+
     if (!SUPABASE_URL || !SERVICE_KEY) {
       return NextResponse.json(
-        { error: "Supabase service role key not configured on server." },
+        { error: "Supabase service role credentials not configured." },
         { status: 500 }
       );
     }
 
-    // Step 1: Try to create the user via Admin API with auto-confirm
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Create user via Admin API with auto-confirmed email
     const createRes = await fetch(`${SUPABASE_URL}/auth/v1/admin/users`, {
       method: "POST",
       headers: adminHeaders(),
       body: JSON.stringify({
-        email,
+        email: cleanEmail,
         password,
         email_confirm: true,
-        user_metadata: { full_name: full_name || email.split("@")[0], role: "developer" },
+        user_metadata: {
+          full_name: full_name?.trim() || cleanEmail.split("@")[0],
+          role: "developer",
+        },
       }),
     });
 
@@ -56,55 +64,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Step 2: If user already exists (422), find and update them
+    // 422: User already exists - DO NOT overwrite their password!
     if (createRes.status === 422) {
-      // List users to find existing one
-      const listRes = await fetch(
-        `${SUPABASE_URL}/auth/v1/admin/users?page=1&per_page=50`,
-        { method: "GET", headers: adminHeaders() }
+      return NextResponse.json(
+        { error: "An account with this email address already exists. Please sign in with your password." },
+        { status: 409 }
       );
-
-      if (listRes.ok) {
-        const listData = await listRes.json();
-        const users = listData.users || listData || [];
-        const existing = users.find(
-          (u: any) => u.email?.toLowerCase() === email.toLowerCase()
-        );
-
-        if (existing) {
-          // Update password and auto-confirm
-          const updateRes = await fetch(
-            `${SUPABASE_URL}/auth/v1/admin/users/${existing.id}`,
-            {
-              method: "PUT",
-              headers: adminHeaders(),
-              body: JSON.stringify({
-                password,
-                email_confirm: true,
-                user_metadata: {
-                  ...existing.user_metadata,
-                  full_name: full_name || existing.user_metadata?.full_name || email.split("@")[0],
-                },
-              }),
-            }
-          );
-
-          if (updateRes.ok) {
-            return NextResponse.json({
-              status: "confirmed",
-              user_id: existing.id,
-              email: existing.email,
-            });
-          }
-        }
-      }
-
-      // Even if we can't find/update, tell the user the account exists
-      return NextResponse.json({
-        status: "exists",
-        email,
-        message: "Account already exists. Please sign in.",
-      });
     }
 
     // Other errors
