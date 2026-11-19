@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { 
@@ -17,11 +17,14 @@ import {
   Loader2, 
   KeyRound,
   RotateCcw,
-  Check
+  Check,
+  RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { getAuthProvider } from "@/lib/authProvider";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function LoginForm() {
   const router = useRouter();
@@ -44,11 +47,30 @@ function LoginForm() {
   const [otpEmail, setOtpEmail] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [generatedOtpHint, setGeneratedOtpHint] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Resend OTP Countdown
+  useEffect(() => {
+    if (resendCooldown > 0) {
+      const timer = setTimeout(() => setResendCooldown(resendCooldown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [resendCooldown]);
 
   // 1. Password Sign In
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    if (!EMAIL_REGEX.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!password) {
+      setError("Please enter your password.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -65,13 +87,17 @@ function LoginForm() {
     }
   };
 
-  // 2. Registration Flow (Creates real Supabase user)
+  // 2. Real Registration in Supabase
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
     if (!fullName.trim()) {
       setError("Please enter your full name.");
+      return;
+    }
+    if (!EMAIL_REGEX.test(email)) {
+      setError("Please enter a valid email address.");
       return;
     }
     if (password.length < 6) {
@@ -96,10 +122,11 @@ function LoginForm() {
   };
 
   // 3. Real Supabase OTP - Send Code
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendOtp = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setError(null);
-    if (!otpEmail || !otpEmail.includes("@")) {
+
+    if (!EMAIL_REGEX.test(otpEmail)) {
       setError("Please enter a valid email address.");
       return;
     }
@@ -110,6 +137,7 @@ function LoginForm() {
         const res = await authProvider.sendOtp(otpEmail);
         if (res.success) {
           setOtpStep("verify");
+          setResendCooldown(60);
           if (res.otp) {
             setGeneratedOtpHint(res.otp);
           }
@@ -128,6 +156,7 @@ function LoginForm() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+
     if (!otpCode.trim()) {
       setError("Please enter the verification code.");
       return;
@@ -159,7 +188,7 @@ function LoginForm() {
       if (res.error) {
         if (res.error.toLowerCase().includes("not enabled") || res.error.toLowerCase().includes("validation_failed")) {
           setError(
-            "Google OAuth is currently disabled in your Supabase project. To enable real Google Sign-In, open your Supabase Dashboard → Authentication → Providers → Google and toggle 'Enable Google' with your Google Client ID & Secret. In the meantime, use Email/Password or OTP sign-in below."
+            "Google OAuth is currently disabled in your Supabase project. To enable real Google Sign-In: Open Supabase Dashboard → Authentication → Providers → Google, toggle 'Enable Google' and input your Google Cloud OAuth Client ID & Secret. You can also sign in immediately using Email OTP or Password below."
           );
         } else {
           setError(res.error);
@@ -183,7 +212,7 @@ function LoginForm() {
       if (res.error) {
         if (res.error.toLowerCase().includes("not enabled")) {
           setError(
-            "GitHub OAuth is disabled in your Supabase project. Enable it under Supabase Dashboard → Authentication → Providers → GitHub, or sign in below."
+            "GitHub OAuth is disabled in your Supabase project. To enable it: Go to Supabase Dashboard → Authentication → Providers → GitHub, or sign in using Email / OTP below."
           );
         } else {
           setError(res.error);
@@ -200,7 +229,6 @@ function LoginForm() {
 
   return (
     <div className="min-h-[90vh] flex items-center justify-center p-4">
-      {/* Main Container */}
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 bg-white dark:bg-[#121214] border border-[#E4E4E7] dark:border-[#27272A] rounded-2xl overflow-hidden shadow-2xl">
         {/* Left: Interactive Preview & Technical Value */}
         <div className="hidden md:flex flex-col justify-between p-8 lg:p-10 bg-[#FAFAFA] dark:bg-[#18181B] border-r border-[#E4E4E7] dark:border-[#27272A]">
@@ -240,7 +268,7 @@ function LoginForm() {
             <div className="space-y-3 text-xs text-[#71717A]">
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                <span>Real Supabase PostgreSQL authentication</span>
+                <span>Supabase PostgreSQL authentication &amp; RLS</span>
               </div>
               <div className="flex items-center gap-2.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -332,7 +360,7 @@ function LoginForm() {
               </div>
             </div>
 
-            {/* 3 Tabs: Sign In / Login with OTP / Create Account */}
+            {/* 3 Tabs: Password / OTP Code / Register */}
             <div className="flex items-center p-1 bg-[#F4F4F5] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] rounded-xl mb-5">
               <button
                 type="button"
@@ -403,6 +431,12 @@ function LoginForm() {
                     <label htmlFor="signin-password" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA]">
                       Password
                     </label>
+                    <Link
+                      href={`/auth/reset-password${email ? `?email=${encodeURIComponent(email)}` : ""}`}
+                      className="text-[11px] text-[#0F766E] dark:text-[#14B8A6] hover:underline font-medium"
+                    >
+                      Forgot password?
+                    </Link>
                   </div>
                   <div className="relative">
                     <Lock className="w-4 h-4 text-[#A1A1AA] absolute left-3 top-2.5" />
@@ -510,13 +544,25 @@ function LoginForm() {
                         <label htmlFor="otp-input" className="block text-xs font-semibold text-[#09090B] dark:text-[#FAFAFA]">
                           Enter Verification Code
                         </label>
-                        <button
-                          type="button"
-                          onClick={() => { setOtpStep("request"); setGeneratedOtpHint(null); }}
-                          className="text-[11px] text-[#0F766E] dark:text-[#14B8A6] hover:underline flex items-center gap-1"
-                        >
-                          <RotateCcw className="w-3 h-3" /> Change email
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleSendOtp()}
+                            disabled={loading || resendCooldown > 0}
+                            className="text-[11px] text-[#0F766E] dark:text-[#14B8A6] hover:underline flex items-center gap-1 disabled:opacity-50"
+                          >
+                            <RefreshCw className="w-3 h-3" />
+                            {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend code"}
+                          </button>
+                          <span className="text-[#A1A1AA] text-[10px]">·</span>
+                          <button
+                            type="button"
+                            onClick={() => { setOtpStep("request"); setGeneratedOtpHint(null); }}
+                            className="text-[11px] text-[#71717A] hover:underline flex items-center gap-1"
+                          >
+                            <RotateCcw className="w-3 h-3" /> Change email
+                          </button>
+                        </div>
                       </div>
                       <div className="relative">
                         <KeyRound className="w-4 h-4 text-[#A1A1AA] absolute left-3 top-2.5" />
@@ -525,7 +571,7 @@ function LoginForm() {
                           type="text"
                           value={otpCode}
                           onChange={(e) => setOtpCode(e.target.value)}
-                          placeholder="e.g. 12345678"
+                          placeholder="Enter 6-8 digit code"
                           className="w-full pl-9 pr-3 py-2 text-xs rounded-xl bg-[#FAFAFA] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] text-[#09090B] dark:text-[#FAFAFA] font-mono tracking-widest text-center focus:outline-none focus:ring-1 focus:ring-[#0F766E] dark:focus:ring-[#14B8A6]"
                           required
                           autoFocus

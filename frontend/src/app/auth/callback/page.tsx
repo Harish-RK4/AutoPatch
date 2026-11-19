@@ -1,39 +1,86 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getAuthProvider } from "@/lib/authProvider";
+import { createClient } from "@supabase/supabase-js";
 import { ShieldCheck, Loader2 } from "lucide-react";
 
-export default function AuthCallbackPage() {
+function AuthCallbackContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const auth = getAuthProvider();
-    auth
-      .getSession()
-      .then((user) => {
-        if (user) {
-          router.replace("/dashboard");
-        } else {
-          // Listen for auth state change
-          const unsubscribe = auth.onAuthStateChange((newUser) => {
-            if (newUser) {
-              unsubscribe();
-              router.replace("/dashboard");
-            }
-          });
-          setTimeout(() => {
+    const handleAuth = async () => {
+      const code = searchParams.get("code");
+      const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+      if (code && url && key) {
+        try {
+          const supabase = createClient(url, key);
+          const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) {
+            console.error("Exchange code error:", exchangeError);
+          } else if (data.session?.user) {
+            const u = data.session.user;
+            // Sync user profile
+            fetch("/api/auth/profile", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: u.id,
+                email: u.email,
+                full_name: u.user_metadata?.full_name || u.user_metadata?.name || u.email?.split("@")[0],
+                avatar_url: u.user_metadata?.avatar_url || u.user_metadata?.picture || "",
+                auth_provider: u.app_metadata?.provider || "google",
+                email_verified: Boolean(u.email_confirmed_at),
+              }),
+            }).catch(() => {});
+            router.replace("/dashboard");
+            return;
+          }
+        } catch (err: any) {
+          console.error("Auth callback error:", err);
+        }
+      }
+
+      // Check active session
+      const auth = getAuthProvider();
+      const session = await auth.getSession();
+      if (session) {
+        // Sync profile
+        fetch("/api/auth/profile", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: session.id,
+            email: session.email,
+            full_name: session.fullName,
+            auth_provider: "google",
+            email_verified: true,
+          }),
+        }).catch(() => {});
+        router.replace("/dashboard");
+      } else {
+        const unsubscribe = auth.onAuthStateChange((newUser) => {
+          if (newUser) {
             unsubscribe();
             router.replace("/dashboard");
-          }, 2500);
-        }
-      })
-      .catch((err) => {
-        setError(err?.message || "Failed to complete authentication.");
-      });
-  }, [router]);
+          }
+        });
+        setTimeout(() => {
+          unsubscribe();
+          router.replace("/dashboard");
+        }, 3000);
+      }
+    };
+
+    handleAuth().catch((err) => {
+      setError(err?.message || "Failed to complete authentication.");
+    });
+  }, [router, searchParams]);
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
@@ -57,5 +104,17 @@ export default function AuthCallbackPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AuthCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[50vh] flex items-center justify-center text-xs font-mono text-[#71717A]">
+        Authenticating...
+      </div>
+    }>
+      <AuthCallbackContent />
+    </Suspense>
   );
 }
