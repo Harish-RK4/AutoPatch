@@ -15,6 +15,7 @@ export interface AuthResponse {
 export interface IAuthProvider {
   signIn(email: string, pass: string): Promise<AuthResponse>;
   signUp(fullName: string, email: string, pass: string): Promise<AuthResponse>;
+  signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse>;
   signOut(): Promise<void>;
   getSession(): Promise<AuthUser | null>;
   onAuthStateChange(callback: (user: AuthUser | null) => void): () => void;
@@ -59,6 +60,21 @@ export class DemoAuthProvider implements IAuthProvider {
 
   async signUp(fullName: string, email: string, pass: string): Promise<AuthResponse> {
     return this.signIn(email, pass);
+  }
+
+  async signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse> {
+    const user: AuthUser = {
+      id: `oauth-${Date.now().toString(36)}`,
+      email: `${provider}.developer@autopatch.dev`,
+      fullName: `${provider.charAt(0).toUpperCase() + provider.slice(1)} Developer`,
+      role: "developer",
+      isDemo: true,
+    };
+    if (typeof window !== "undefined") {
+      localStorage.setItem("autopatch_session", JSON.stringify(user));
+      document.cookie = `autopatch_session=active; path=/; max-age=86400; SameSite=Lax`;
+    }
+    return { user, error: null };
   }
 
   async signOut(): Promise<void> {
@@ -135,6 +151,23 @@ export class SupabaseAuthProvider implements IAuthProvider {
     }
 
     return { user, error: null };
+  }
+
+  async signInWithOAuth(provider: "google" | "github"): Promise<AuthResponse> {
+    if (!this.supabase) {
+      return { user: null, error: "Supabase credentials missing in .env." };
+    }
+    const origin = typeof window !== "undefined" ? window.location.origin : "http://localhost:3000";
+    const { data, error } = await this.supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${origin}/auth/callback`,
+      },
+    });
+    if (error) {
+      return { user: null, error: error.message };
+    }
+    return { user: null, error: null };
   }
 
   async signUp(fullName: string, email: string, pass: string): Promise<AuthResponse> {

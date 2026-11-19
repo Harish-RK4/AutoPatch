@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { 
@@ -9,31 +9,33 @@ import {
   CheckCircle2, 
   GitBranch, 
   AlertTriangle,
-  Play
+  Play,
+  Lock,
+  UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-import { AuthManager } from "@/lib/auth";
+import { getAuthProvider } from "@/lib/authProvider";
 
 export default function LandingPage() {
   const router = useRouter();
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  const handleLaunchDemo = () => {
-    AuthManager.loginDemo();
-    router.push("/dashboard");
-  };
+  useEffect(() => {
+    getAuthProvider().getSession().then(setCurrentUser);
+  }, []);
 
   return (
     <div className="space-y-16 pb-12">
       {/* Top Navigation Bar inside Landing Page */}
       <header className="flex items-center justify-between pb-4 border-b border-[#E7E5E4] dark:border-[#292524]">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#0F766E] dark:bg-[#14B8A6] flex items-center justify-center text-white dark:text-[#0C0A09]">
+          <div className="w-8 h-8 rounded-lg bg-[#0F766E] dark:bg-[#14B8A6] flex items-center justify-center text-white dark:text-[#0C0A09] shadow-sm">
             <ShieldCheck className="w-5 h-5 stroke-[1.5]" />
           </div>
           <div>
-            <span className="font-semibold text-base tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
+            <span className="font-bold text-base tracking-tight text-[#1C1917] dark:text-[#F5F5F4]">
               AutoPatch
             </span>
             <span className="hidden sm:inline-block ml-2 text-xs font-mono px-2 py-0.5 rounded bg-[#FAF9F6] dark:bg-[#1C1917] text-[#57534E] dark:text-[#D6D3D1] border border-[#E7E5E4] dark:border-[#292524]">
@@ -44,13 +46,26 @@ export default function LandingPage() {
 
         <div className="flex items-center gap-3">
           <ThemeToggle />
-          <Link href="/login" className="text-xs font-medium text-[#57534E] dark:text-[#D6D3D1] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] px-3 py-1.5 transition-colors">
-            Sign In / Sign Up
-          </Link>
-          <Button variant="primary" size="sm" onClick={handleLaunchDemo}>
-            <Play className="w-3.5 h-3.5 mr-1.5 fill-current stroke-[1.5]" />
-            Launch Demo
-          </Button>
+          {currentUser ? (
+            <Link href="/dashboard">
+              <Button variant="primary" size="sm">
+                Enter Control Room
+                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login" className="text-xs font-medium text-[#57534E] dark:text-[#D6D3D1] hover:text-[#1C1917] dark:hover:text-[#F5F5F4] px-3 py-1.5 transition-colors">
+                Sign In
+              </Link>
+              <Link href="/login?tab=signup">
+                <Button variant="primary" size="sm">
+                  <UserPlus className="w-3.5 h-3.5 mr-1.5" />
+                  Get Started Free
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
       </header>
 
@@ -71,15 +86,28 @@ export default function LandingPage() {
         </p>
 
         <div className="flex items-center justify-center gap-3 pt-2">
-          <Button variant="primary" size="lg" onClick={handleLaunchDemo}>
-            Launch Control Room
-            <ArrowRight className="w-4 h-4 ml-2 stroke-[1.5]" />
-          </Button>
-          <Link href="/login">
-            <Button variant="secondary" size="lg">
-              Sign In / Sign Up
-            </Button>
-          </Link>
+          {currentUser ? (
+            <Link href="/dashboard">
+              <Button variant="primary" size="lg" className="shadow-sm">
+                Enter Control Room
+                <ArrowRight className="w-4 h-4 ml-2 stroke-[1.5]" />
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/login?tab=signup">
+                <Button variant="primary" size="lg" className="shadow-sm">
+                  Get Started Free
+                  <ArrowRight className="w-4 h-4 ml-2 stroke-[1.5]" />
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="secondary" size="lg">
+                  Sign In
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <div className="flex items-center justify-center gap-6 pt-4 text-xs font-mono text-[#57534E] dark:text-[#D6D3D1] flex-wrap">
@@ -289,9 +317,9 @@ def calculate_percentage(marks, total=100.0):
           <Link href="/login" className="hover:text-[#1C1917] dark:hover:text-[#F5F5F4]">
             Sign In
           </Link>
-          <button onClick={handleLaunchDemo} className="hover:text-[#1C1917] dark:hover:text-[#F5F5F4]">
-            Launch Demo
-          </button>
+          <Link href="/login?tab=signup" className="hover:text-[#1C1917] dark:hover:text-[#F5F5F4]">
+            Create Account
+          </Link>
         </div>
       </footer>
     </div>
