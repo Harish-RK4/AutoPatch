@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AuthManager, AuthUser } from "@/lib/auth";
+import { getAuthProvider } from "@/lib/authProvider";
 import { PushClient } from "@/lib/pushClient";
 
 interface NotificationItem {
@@ -93,7 +94,8 @@ export function TopNav() {
   const [pushSending, setPushSending] = useState<boolean>(false);
 
   useEffect(() => {
-    setUser(AuthManager.getSession());
+    getAuthProvider().getSession().then(setUser);
+    const unsubscribe = getAuthProvider().onAuthStateChange(setUser);
     // Fetch live notifications if available
     const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
     fetch(`${apiBase}/notifications`)
@@ -146,7 +148,10 @@ export function TopNav() {
     );
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
+    try {
+      await getAuthProvider().signOut();
+    } catch (e) {}
     AuthManager.clearSession();
     setUser(null);
     setUserMenuOpen(false);
