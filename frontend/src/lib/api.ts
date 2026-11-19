@@ -368,6 +368,146 @@ export async function fetchBugDetail(bugId: string) {
           suite_count: 14,
           static_scan_clean: true,
           verification_ladder: "V4 Proven"
+        },
+        critic_verdict: {
+          correctness_score: 95.0,
+          safety_score: 100.0,
+          minimality_score: 95.0,
+          side_effect_score: 90.0,
+          composite_score: 95.0,
+          rank: 1,
+          recommendation: "accept",
+          rationale: "Surgical input validation guard. Highest correctness and zero regressions."
+        },
+        blast_radius_report: {
+          target_file: "calculator.py",
+          target_symbol: "calculate_percentage",
+          lines_touched: 2,
+          files_impacted: ["calculator.py"],
+          direct_callers: ["generate_report_card"],
+          transitive_callers: ["main"],
+          cyclomatic_delta: 1,
+          blast_score: 18,
+          risk_level: "Low",
+          summary: "Touches 1 file, 2 lines, 1 caller impacted. Risk Level: Low (Score: 18/100)."
+        }
+      },
+      {
+        id: "demo-patch-002",
+        bug_id: "demo-bug-001",
+        candidate_no: 2,
+        diff: "@@ -5,3 +5,6 @@\n def calculate_percentage(marks: float, total: float = 100.0) -> float:\n+    # Clamping normalization\n+    marks = max(0.0, min(total, float(marks)))\n     percentage = (marks / total) * 100.0\n     return percentage",
+        original_code: "def get_input(raw_marks):\n    return float(raw_marks)\n\ndef calculate_percentage(marks: float, total: float = 100.0) -> float:\n    # Origin line: bad input accepted on line 5\n    # Crash line: line 12 evaluates without boundary assertion\n    percentage = (marks / total) * 100.0\n    return percentage",
+        patched_code: "def get_input(raw_marks):\n    return float(raw_marks)\n\ndef calculate_percentage(marks: float, total: float = 100.0) -> float:\n    # Clamping normalization\n    marks = max(0.0, min(total, float(marks)))\n    percentage = (marks / total) * 100.0\n    return percentage",
+        reason: "Normalize out-of-bounds inputs by clamping scores to [0.0, total] range.",
+        risk_level: "low",
+        rank: 2,
+        selected: false,
+        git_branch: "patch/bug-001-candidate-2",
+        status: "proposed",
+        verification_level: "V3",
+        hunks: [
+          {
+            hunk_no: 1,
+            file_path: "calculator.py",
+            line_start: 5,
+            line_end: 7,
+            original_code: "def calculate_percentage(marks: float, total: float = 100.0) -> float:",
+            new_code: "def calculate_percentage(marks: float, total: float = 100.0) -> float:\n    # Clamping normalization\n    marks = max(0.0, min(total, float(marks)))",
+            why_wrong: "Values below 0 or above total were accepted without normalization.",
+            why_fix_works: "Clamping prevents runtime exceptions while constraining percentages to [0, 100].",
+            if_not_fixed: "Invalid report card percentages generated.",
+            side_effects: ["Silently modifies unexpected input values without raising an error."],
+            alternatives: ["Candidate 1 raises ValueError explicitly."]
+          }
+        ],
+        proof_bundle: {
+          repro_test_passes: true,
+          full_suite_passes: true,
+          suite_count: 14,
+          static_scan_clean: true,
+          verification_ladder: "V3 Verified"
+        },
+        critic_verdict: {
+          correctness_score: 82.0,
+          safety_score: 95.0,
+          minimality_score: 88.0,
+          side_effect_score: 85.0,
+          composite_score: 87.0,
+          rank: 2,
+          recommendation: "needs_review",
+          rationale: "Clamping avoids exceptions but may silently conceal invalid data entry."
+        },
+        blast_radius_report: {
+          target_file: "calculator.py",
+          target_symbol: "calculate_percentage",
+          lines_touched: 2,
+          files_impacted: ["calculator.py"],
+          direct_callers: ["generate_report_card"],
+          transitive_callers: ["main"],
+          cyclomatic_delta: 0,
+          blast_score: 22,
+          risk_level: "Low",
+          summary: "Touches 1 file, 2 lines, 1 caller impacted. Risk Level: Low (Score: 22/100)."
+        }
+      },
+      {
+        id: "demo-patch-003",
+        bug_id: "demo-bug-001",
+        candidate_no: 3,
+        diff: "@@ -5,3 +5,9 @@\n def calculate_percentage(marks: float, total: float = 100.0) -> float:\n+    if not isinstance(marks, (int, float)) or not isinstance(total, (int, float)):\n+        raise TypeError('Expected numeric marks and total')\n+    if marks < 0.0 or marks > total:\n+        raise ValueError(f'Invalid score: {marks} outside [0.0, {total}]')\n     percentage = (marks / total) * 100.0\n     return percentage",
+        original_code: "def get_input(raw_marks):\n    return float(raw_marks)\n\ndef calculate_percentage(marks: float, total: float = 100.0) -> float:\n    # Origin line: bad input accepted on line 5\n    # Crash line: line 12 evaluates without boundary assertion\n    percentage = (marks / total) * 100.0\n    return percentage",
+        patched_code: "def get_input(raw_marks):\n    return float(raw_marks)\n\ndef calculate_percentage(marks: float, total: float = 100.0) -> float:\n    if not isinstance(marks, (int, float)) or not isinstance(total, (int, float)):\n        raise TypeError('Expected numeric marks and total')\n    if marks < 0.0 or marks > total:\n        raise ValueError(f'Invalid score: {marks} outside [0.0, {total}]')\n    percentage = (marks / total) * 100.0\n    return percentage",
+        reason: "Comprehensive typed validation guard with detailed error reporting.",
+        risk_level: "low",
+        rank: 3,
+        selected: false,
+        git_branch: "patch/bug-001-candidate-3",
+        status: "proposed",
+        verification_level: "V4",
+        hunks: [
+          {
+            hunk_no: 1,
+            file_path: "calculator.py",
+            line_start: 5,
+            line_end: 7,
+            original_code: "def calculate_percentage(marks: float, total: float = 100.0) -> float:",
+            new_code: "def calculate_percentage(marks: float, total: float = 100.0) -> float:\n    if not isinstance(marks, (int, float)) or not isinstance(total, (int, float)):\n        raise TypeError('Expected numeric marks and total')\n    if marks < 0.0 or marks > total:\n        raise ValueError(f'Invalid score: {marks} outside [0.0, {total}]')",
+            why_wrong: "Missing both type validation and numerical range check.",
+            why_fix_works: "Guards against both non-numeric inputs and out-of-range student marks.",
+            if_not_fixed: "Crashes on non-numeric inputs and corrupts grading on negative scores.",
+            side_effects: ["Slightly larger diff and strict type checks."],
+            alternatives: ["Candidate 1 is more minimal."]
+          }
+        ],
+        proof_bundle: {
+          repro_test_passes: true,
+          full_suite_passes: true,
+          suite_count: 14,
+          static_scan_clean: true,
+          verification_ladder: "V4 Proven"
+        },
+        critic_verdict: {
+          correctness_score: 98.0,
+          safety_score: 100.0,
+          minimality_score: 72.0,
+          side_effect_score: 85.0,
+          composite_score: 89.0,
+          rank: 3,
+          recommendation: "accept",
+          rationale: "Most comprehensive guard with type safety. Slightly larger diff."
+        },
+        blast_radius_report: {
+          target_file: "calculator.py",
+          target_symbol: "calculate_percentage",
+          lines_touched: 4,
+          files_impacted: ["calculator.py"],
+          direct_callers: ["generate_report_card"],
+          transitive_callers: ["main"],
+          cyclomatic_delta: 2,
+          blast_score: 25,
+          risk_level: "Medium",
+          summary: "Touches 1 file, 4 lines, 1 caller impacted. Risk Level: Medium (Score: 25/100)."
         }
       }
     ]
