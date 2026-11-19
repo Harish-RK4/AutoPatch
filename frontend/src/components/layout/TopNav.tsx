@@ -19,10 +19,12 @@ import {
   X,
   LogOut,
   Shield,
-  ArrowRight
+  ArrowRight,
+  Radio
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AuthManager, AuthUser } from "@/lib/auth";
+import { PushClient } from "@/lib/pushClient";
 
 interface NotificationItem {
   id: string;
@@ -87,9 +89,32 @@ export function TopNav() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [user, setUser] = useState<AuthUser | null>(null);
+  const [pushStatus, setPushStatus] = useState<string>("");
+  const [pushSending, setPushSending] = useState<boolean>(false);
 
   useEffect(() => {
     setUser(AuthManager.getSession());
+    // Fetch live notifications if available
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000/api/v1";
+    fetch(`${apiBase}/notifications`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setNotifications(
+            data.map((item: any) => ({
+              id: item.id,
+              type: item.type || "scan_completed",
+              title: item.title,
+              body: item.body,
+              timestamp: item.created_at ? new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "Just now",
+              read: item.read ?? false,
+            }))
+          );
+        }
+      })
+      .catch(() => {
+        // Fallback silently to initial mock notifications
+      });
   }, [pathname]);
 
   // Keyboard shortcut Cmd/Ctrl + K for search modal
@@ -308,6 +333,40 @@ export function TopNav() {
                       </div>
                     ))}
                   </div>
+
+                  {/* Push Notification Controls Footer */}
+                  <div className="p-2.5 bg-[#FAF9F6] dark:bg-[#1C1917] border-t border-[#E7E5E4] dark:border-[#292524] flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setPushSending(true);
+                        const res = await PushClient.requestAndRegister();
+                        if (res.permission === "granted") {
+                          setPushStatus("Web Push Connected");
+                        } else {
+                          setPushStatus(res.permission);
+                        }
+                        setPushSending(false);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-white dark:bg-[#292524] border border-[#E7E5E4] dark:border-[#38332E] text-[#1C1917] dark:text-[#F5F5F4] hover:border-[#0F766E] transition-all"
+                    >
+                      <Radio className="w-3 h-3 text-[#0F766E] dark:text-[#14B8A6]" />
+                      <span>{pushStatus || "Enable Push"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={pushSending}
+                      onClick={async () => {
+                        setPushSending(true);
+                        await PushClient.sendTestAlert();
+                        setPushSending(false);
+                      }}
+                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-[#0F766E] text-white hover:bg-[#0D655E] transition-colors disabled:opacity-50"
+                    >
+                      Send Test Alert
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -361,6 +420,40 @@ export function TopNav() {
                     >
                       <LogOut className="w-3.5 h-3.5 stroke-[1.5]" />
                       <span>Sign Out</span>
+                    </button>
+                  </div>
+
+                  {/* Push Notification Controls Footer */}
+                  <div className="p-2.5 bg-[#FAF9F6] dark:bg-[#1C1917] border-t border-[#E7E5E4] dark:border-[#292524] flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setPushSending(true);
+                        const res = await PushClient.requestAndRegister();
+                        if (res.permission === "granted") {
+                          setPushStatus("Web Push Connected");
+                        } else {
+                          setPushStatus(res.permission);
+                        }
+                        setPushSending(false);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-white dark:bg-[#292524] border border-[#E7E5E4] dark:border-[#38332E] text-[#1C1917] dark:text-[#F5F5F4] hover:border-[#0F766E] transition-all"
+                    >
+                      <Radio className="w-3 h-3 text-[#0F766E] dark:text-[#14B8A6]" />
+                      <span>{pushStatus || "Enable Push"}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={pushSending}
+                      onClick={async () => {
+                        setPushSending(true);
+                        await PushClient.sendTestAlert();
+                        setPushSending(false);
+                      }}
+                      className="px-2 py-1 rounded-md text-[11px] font-medium bg-[#0F766E] text-white hover:bg-[#0D655E] transition-colors disabled:opacity-50"
+                    >
+                      Send Test Alert
                     </button>
                   </div>
                 </div>

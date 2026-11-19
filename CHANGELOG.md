@@ -4,6 +4,32 @@ All notable changes to AutoPatch will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Phase P7 - FCM Push Notifications Complete] - 2026-11-19
+
+### Added
+- **Web Push Token Registration & Device Registry (`app.notifications.fcm`, `POST /devices`)**:
+  - Endpoints to register (`POST /devices`) and unregister (`DELETE /devices/{token}`) push client devices across web and mobile platforms.
+  - Association of device tokens with authenticated or demo user accounts.
+- **Firebase Cloud Messaging Dispatcher & Simulated Fallback (`app.notifications.fcm`)**:
+  - Dynamic multicast FCM dispatch via Firebase Admin SDK when `FIREBASE_PROJECT_ID`, `FIREBASE_CLIENT_EMAIL`, and `FIREBASE_PRIVATE_KEY` are provided.
+  - Transparent zero-credential simulation engine: logs dispatches, tracks delivery states (`delivered_simulated`), and maintains an in-memory chronological inbox.
+- **Notification History & Diagnostic Endpoints (`app.api.routes_notifications`)**:
+  - `GET /notifications`: Query chronological notification items with per-user filtering and limits.
+  - `POST /notifications/test`: Send immediate test alert to registered client devices.
+  - `POST /notifications/{id}/read`: Mark individual notification as read.
+  - `POST /notifications/read-all`: Mark all notifications as read for current user.
+  - `GET /notifications/status`: Telemetry exposing FCM connection status, active device token counts, and delivery mode.
+- **Background Web Push Service Worker (`frontend/public/firebase-messaging-sw.js`)**:
+  - Service worker handling incoming `push` events with notification actions (`Review Patch`, `Dismiss`).
+  - Implements `notificationclick` handler focusing active tabs or opening target patch review routes (`/patches/{id}`).
+- **Interactive Push Client & TopNav Drawer Integration (`pushClient.ts`, `TopNav.tsx`)**:
+  - Web Notification API permission requester and device token synchronization.
+  - Interactive "Enable Push" status toggle and "Send Test Alert" action button inside the TopNav notification drawer.
+- **Comprehensive Verification Suite**:
+  - Added `backend/tests/unit/test_notifications.py` covering device lifecycle, payload dispatch, simulation fallback, and REST endpoints.
+  - 101 backend pytest tests passing with 100% clean Ruff linting.
+  - Zero TypeScript compile errors.
+
 ## [Phase P6 - Supabase Swap] - 2026-11-19
 
 ### Added
