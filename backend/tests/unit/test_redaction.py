@@ -2,7 +2,7 @@
 Unit tests for secret redaction filter.
 """
 
-from app.core.security import redact_secrets, mask_secret
+from app.core.security import mask_secret, redact_secrets
 
 
 def test_redact_secrets_masks_keys():

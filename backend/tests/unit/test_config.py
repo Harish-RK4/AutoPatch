@@ -3,6 +3,7 @@ Unit tests for configuration schema and production demo guard.
 """
 
 import pytest
+
 from app.core.config import Settings
 
 

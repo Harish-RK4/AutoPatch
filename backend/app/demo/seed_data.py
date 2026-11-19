@@ -4,9 +4,9 @@ STRICTLY FOR DEMO / TESTING MODE (DEMO_MODE=true).
 Never imported into production pipelines or written to live production databases.
 """
 
-from typing import List, Dict, Any
+from typing import Any
 
-DEMO_PROJECTS: List[Dict[str, Any]] = [
+DEMO_PROJECTS: list[dict[str, Any]] = [
     {
         "id": "demo-proj-001",
         "name": "Python Marks Calculator",
@@ -27,9 +27,9 @@ DEMO_PROJECTS: List[Dict[str, Any]] = [
                     "    # Crash line: line 12 evaluates without boundary assertion\n"
                     "    percentage = (marks / total) * 100.0\n"
                     "    return percentage\n"
-                )
+                ),
             }
-        ]
+        ],
     },
     {
         "id": "demo-proj-002",
@@ -49,9 +49,9 @@ DEMO_PROJECTS: List[Dict[str, Any]] = [
                     "  return parts[0][0] + parts[1][0];\n"
                     "}\n"
                     "module.exports = { getUserInitials };\n"
-                )
+                ),
             }
-        ]
+        ],
     },
     {
         "id": "demo-proj-003",
@@ -71,9 +71,9 @@ DEMO_PROJECTS: List[Dict[str, Any]] = [
                     "    strncpy(dest, src, n);\n"
                     "    // Defect: dest[n - 1] is not explicitly null terminated\n"
                     "}\n"
-                )
+                ),
             }
-        ]
+        ],
     },
     {
         "id": "demo-proj-004",
@@ -93,13 +93,13 @@ DEMO_PROJECTS: List[Dict[str, Any]] = [
                     "103,Charlie Brown,,02-10-2026\n"
                     "104,Diana Prince,105.0,2026-10-04\n"
                     "105,Evan Wright,92.0,2026-10-05\n"
-                )
+                ),
             }
-        ]
-    }
+        ],
+    },
 ]
 
-DEMO_BUGS: List[Dict[str, Any]] = [
+DEMO_BUGS: list[dict[str, Any]] = [
     {
         "id": "demo-bug-001",
         "project_id": "demo-proj-001",
@@ -124,22 +124,30 @@ DEMO_BUGS: List[Dict[str, Any]] = [
             "trigger_input": {"marks": -5.0, "total": 100.0},
             "trace": [
                 {"step": 1, "line": 2, "description": "get_input receives raw string '-5'"},
-                {"step": 2, "line": 5, "description": "calculate_percentage called with marks=-5.0"},
-                {"step": 3, "line": 12, "description": "Formula computes (-5.0 / 100.0) * 100.0 = -5.0"}
+                {
+                    "step": 2,
+                    "line": 5,
+                    "description": "calculate_percentage called with marks=-5.0",
+                },
+                {
+                    "step": 3,
+                    "line": 12,
+                    "description": "Formula computes (-5.0 / 100.0) * 100.0 = -5.0",
+                },
             ],
             "beginner": "The calculator trusted any number entered, even negative scores like -5 or impossibly high scores like 105%. We added a check at the entrance to ensure only real scores between 0 and 100% are computed.",
             "developer": "calculate_percentage lacked invariant precondition validation. When marks < 0 or marks > total, percentage was computed linearly yielding out-of-range float values. The patch inserts an explicit bounds assertion raising ValueError.",
-            "manager": "Resolved arithmetic logic defect that could corrupt student grading reports and GPA calculations with negative or overflow percentages. Fixed with low risk and validated by automated tests."
+            "manager": "Resolved arithmetic logic defect that could corrupt student grading reports and GPA calculations with negative or overflow percentages. Fixed with low risk and validated by automated tests.",
         },
         "blast_radius": {
             "functions": ["calculate_percentage", "generate_report_card"],
             "tests": ["test_calculator.py::test_negative_marks"],
-            "files": ["calculator.py"]
-        }
+            "files": ["calculator.py"],
+        },
     }
 ]
 
-DEMO_PATCHES: List[Dict[str, Any]] = [
+DEMO_PATCHES: list[dict[str, Any]] = [
     {
         "id": "demo-patch-001",
         "bug_id": "demo-bug-001",
@@ -174,8 +182,12 @@ DEMO_PATCHES: List[Dict[str, Any]] = [
                 "why_wrong": "The original function allowed any numerical value for marks, including negative numbers or values exceeding the maximum.",
                 "why_fix_works": "Adding an immediate validation guard ensures invalid numbers raise ValueError before corrupting calculations.",
                 "if_not_fixed": "Negative marks will produce negative percentages; marks > total will produce percentages above 100% in student report cards.",
-                "side_effects": ["Callers must handle ValueError when supplying out-of-range student scores."],
-                "alternatives": ["Candidate 2 clamps out-of-bound values instead of raising, but silent clamping conceals data entry errors."]
+                "side_effects": [
+                    "Callers must handle ValueError when supplying out-of-range student scores."
+                ],
+                "alternatives": [
+                    "Candidate 2 clamps out-of-bound values instead of raising, but silent clamping conceals data entry errors."
+                ],
             }
         ],
         "proof_bundle": {
@@ -183,7 +195,7 @@ DEMO_PATCHES: List[Dict[str, Any]] = [
             "full_suite_passes": True,
             "suite_count": 14,
             "static_scan_clean": True,
-            "verification_ladder": "V4 Proven"
-        }
+            "verification_ladder": "V4 Proven",
+        },
     }
 ]

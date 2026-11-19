@@ -4,10 +4,10 @@ Enforces fail-fast production guards and validated settings.
 """
 
 from pathlib import Path
-from typing import Optional, Literal
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from pydantic import model_validator
+from typing import Literal
 
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Resolve project root relative to this file
 BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
@@ -17,15 +17,13 @@ ENV_FILE = ROOT_DIR / ".env" if (ROOT_DIR / ".env").exists() else BACKEND_DIR / 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=str(ENV_FILE),
-        env_file_encoding="utf-8",
-        extra="ignore"
+        env_file=str(ENV_FILE), env_file_encoding="utf-8", extra="ignore"
     )
 
     # Runtime Environment
     APP_ENV: Literal["development", "production", "test"] = "development"
     NODE_ENV: Literal["development", "production", "test"] = "development"
-    
+
     # Auth & Demo Isolation
     NEXT_PUBLIC_AUTH_MODE: Literal["demo", "supabase"] = "demo"
     DEMO_MODE: bool = True
@@ -34,11 +32,11 @@ class Settings(BaseSettings):
     LLM_MODE: Literal["mock", "free", "private"] = "mock"
 
     # Free Tier Providers (Optional in mock mode)
-    GEMINI_API_KEY: Optional[str] = None
-    GROQ_API_KEY: Optional[str] = None
-    OPENROUTER_API_KEY: Optional[str] = None
-    MISTRAL_API_KEY: Optional[str] = None
-    CEREBRAS_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: str | None = None
+    GROQ_API_KEY: str | None = None
+    OPENROUTER_API_KEY: str | None = None
+    MISTRAL_API_KEY: str | None = None
+    CEREBRAS_API_KEY: str | None = None
     OLLAMA_BASE_URL: str = "http://localhost:11434"
 
     # Model IDs
@@ -55,15 +53,15 @@ class Settings(BaseSettings):
     FRONTEND_PORT: int = 3000
 
     # Supabase (Optional for Phase P0)
-    NEXT_PUBLIC_SUPABASE_URL: Optional[str] = None
-    NEXT_PUBLIC_SUPABASE_ANON_KEY: Optional[str] = None
-    SUPABASE_SERVICE_ROLE_KEY: Optional[str] = None
-    DATABASE_URL: Optional[str] = None
+    NEXT_PUBLIC_SUPABASE_URL: str | None = None
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: str | None = None
+    SUPABASE_SERVICE_ROLE_KEY: str | None = None
+    DATABASE_URL: str | None = None
 
     # Firebase (Optional for Phase P0)
-    FIREBASE_PROJECT_ID: Optional[str] = None
-    FIREBASE_CLIENT_EMAIL: Optional[str] = None
-    FIREBASE_PRIVATE_KEY: Optional[str] = None
+    FIREBASE_PROJECT_ID: str | None = None
+    FIREBASE_CLIENT_EMAIL: str | None = None
+    FIREBASE_PRIVATE_KEY: str | None = None
 
     @model_validator(mode="after")
     def enforce_production_demo_guard(self) -> "Settings":
@@ -71,7 +69,7 @@ class Settings(BaseSettings):
         Binding Production Guard:
         Under no circumstances may DEMO_MODE be enabled in production environments.
         """
-        is_production = (self.APP_ENV == "production" or self.NODE_ENV == "production")
+        is_production = self.APP_ENV == "production" or self.NODE_ENV == "production"
         if is_production and self.DEMO_MODE:
             raise RuntimeError(
                 "FATAL CONFIGURATION ERROR: DEMO_MODE=True is strictly forbidden in production. "

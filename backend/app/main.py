@@ -4,15 +4,16 @@ FastAPI web service exposing the autonomous repair pipeline, routing, and review
 """
 
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.config import settings
-from app.core.queue import job_queue
-from app.api.routes_projects import router as projects_router
 from app.api.routes_bugs import router as bugs_router
 from app.api.routes_patches import router as patches_router
+from app.api.routes_projects import router as projects_router
 from app.api.routes_settings import router as settings_router
+from app.core.config import settings
+from app.core.queue import job_queue
 
 
 @asynccontextmanager
@@ -27,7 +28,7 @@ app = FastAPI(
     title="AutoPatch API",
     description="Autonomous Software Bug Detection and Repair System API",
     version="0.1.0",
-    lifespan=lifespan
+    lifespan=lifespan,
 )
 
 # CORS Middleware allowing frontend development access
@@ -55,7 +56,7 @@ async def health_check():
         "app_env": settings.APP_ENV,
         "demo_mode": settings.DEMO_MODE,
         "llm_mode": settings.LLM_MODE,
-        "auth_mode": settings.NEXT_PUBLIC_AUTH_MODE
+        "auth_mode": settings.NEXT_PUBLIC_AUTH_MODE,
     }
 
 
@@ -65,5 +66,5 @@ async def root():
         "name": "AutoPatch API",
         "version": "0.1.0",
         "docs_url": "/docs",
-        "health_url": "/health"
+        "health_url": "/health",
     }

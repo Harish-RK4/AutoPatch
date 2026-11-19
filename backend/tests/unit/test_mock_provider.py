@@ -3,21 +3,28 @@ Unit tests for deterministic Mock LLM Provider.
 """
 
 import json
+
 import pytest
+
+from app.llm.base import LLMMessage, LLMRequest
 from app.llm.mock_provider import MockLLMProvider
-from app.llm.base import LLMRequest, LLMMessage
 
 
 @pytest.mark.asyncio
 async def test_mock_provider_all_agent_roles():
     provider = MockLLMProvider()
-    roles = ["scanner", "reproducer", "root_cause", "patcher", "critic", "explainer", "dataset_fixer"]
+    roles = [
+        "scanner",
+        "reproducer",
+        "root_cause",
+        "patcher",
+        "critic",
+        "explainer",
+        "dataset_fixer",
+    ]
 
     for role in roles:
-        req = LLMRequest(
-            agent_role=role,
-            messages=[LLMMessage(role="user", content="Test prompt")]
-        )
+        req = LLMRequest(agent_role=role, messages=[LLMMessage(role="user", content="Test prompt")])
         res = await provider.complete(req)
         assert res.provider == "mock"
         assert res.content is not None

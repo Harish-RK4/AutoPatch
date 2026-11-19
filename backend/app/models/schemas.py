@@ -2,21 +2,22 @@
 Pydantic Schemas for Projects, Scans, Bugs, Patches, and Settings
 """
 
-from typing import List, Optional, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
 class ProjectCreate(BaseModel):
     name: str
-    source_type: str = "upload" # upload | git | demo
-    language: Optional[str] = None
-    repo_url: Optional[str] = None
+    source_type: str = "upload"  # upload | git | demo
+    language: str | None = None
+    repo_url: str | None = None
 
 
 class ProjectResponse(BaseModel):
     id: str
     name: str
-    language: Optional[str] = None
+    language: str | None = None
     source_type: str
     status: str
     created_at: str
@@ -29,8 +30,8 @@ class BugSummary(BaseModel):
     file_path: str
     line_start: int
     line_end: int
-    origin_line: Optional[int] = None
-    crash_line: Optional[int] = None
+    origin_line: int | None = None
+    crash_line: int | None = None
     category: str
     severity: str
     confidence_score: float
@@ -47,9 +48,9 @@ class PatchHunk(BaseModel):
     new_code: str
     why_wrong: str
     why_fix_works: str
-    if_not_fixed: Optional[str] = None
-    side_effects: List[str] = Field(default_factory=list)
-    alternatives: List[str] = Field(default_factory=list)
+    if_not_fixed: str | None = None
+    side_effects: list[str] = Field(default_factory=list)
+    alternatives: list[str] = Field(default_factory=list)
 
 
 class PatchDetail(BaseModel):
@@ -63,33 +64,33 @@ class PatchDetail(BaseModel):
     risk_level: str
     rank: int
     selected: bool
-    git_branch: Optional[str] = None
-    status: str # proposed | accepted | rejected | needs_review
+    git_branch: str | None = None
+    status: str  # proposed | accepted | rejected | needs_review
     verification_level: str
-    hunks: List[PatchHunk] = Field(default_factory=list)
-    proof_bundle: Dict[str, Any] = Field(default_factory=dict)
+    hunks: list[PatchHunk] = Field(default_factory=list)
+    proof_bundle: dict[str, Any] = Field(default_factory=dict)
 
 
 class BugDetail(BugSummary):
     description: str
-    trigger_input: Optional[Dict[str, Any]] = None
-    failure_type: Optional[str] = None
+    trigger_input: dict[str, Any] | None = None
+    failure_type: str | None = None
     severity_score: float
     priority_rank: int
-    root_cause: Dict[str, Any]
-    blast_radius: Dict[str, Any]
-    patches: List[PatchDetail] = Field(default_factory=list)
+    root_cause: dict[str, Any]
+    blast_radius: dict[str, Any]
+    patches: list[PatchDetail] = Field(default_factory=list)
 
 
 class PatchDecision(BaseModel):
-    action: str # accept | reject | needs_review
-    note: Optional[str] = None
+    action: str  # accept | reject | needs_review
+    note: str | None = None
 
 
 class ScanTriggerResponse(BaseModel):
     scan_id: str
     project_id: str
-    stage: str # upload | scan | explain | fix | test | done
+    stage: str  # upload | scan | explain | fix | test | done
     message: str
 
 
@@ -99,4 +100,4 @@ class AskQuestionRequest(BaseModel):
 
 class AskQuestionResponse(BaseModel):
     answer: str
-    cited_files: List[str] = Field(default_factory=list)
+    cited_files: list[str] = Field(default_factory=list)

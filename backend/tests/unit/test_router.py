@@ -3,8 +3,9 @@ Unit tests for LLM Router, caching, and role routing table.
 """
 
 import pytest
+
+from app.llm.base import LLMMessage, LLMRequest
 from app.llm.router import LLMRouter
-from app.llm.base import LLMRequest, LLMMessage
 
 
 @pytest.mark.asyncio
@@ -19,8 +20,7 @@ async def test_router_loads_routing_yaml():
 async def test_router_mock_mode_zero_keys():
     router = LLMRouter()
     req = LLMRequest(
-        agent_role="scanner",
-        messages=[LLMMessage(role="user", content="scan this function")]
+        agent_role="scanner", messages=[LLMMessage(role="user", content="scan this function")]
     )
     res = await router.route(req)
     assert res.provider == "mock"

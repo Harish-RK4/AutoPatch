@@ -4,8 +4,9 @@ Ensures all tests execute with LLM_MODE=mock and zero external keys.
 """
 
 import os
+
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 # Force mock mode for all tests
 os.environ["LLM_MODE"] = "mock"

@@ -3,8 +3,8 @@ Patches API Router
 Handles patch verification, developer review decisions, and branch rollback.
 """
 
-from fastapi import APIRouter, HTTPException
-from app.core.config import settings
+from fastapi import APIRouter
+
 from app.models.schemas import PatchDecision
 
 router = APIRouter(prefix="/patches", tags=["patches"])
@@ -20,7 +20,7 @@ async def verify_patch(patch_id: str):
         "tests_failed": 0,
         "static_scan_clean": True,
         "confidence_score": 100.0,
-        "status": "ready_for_review"
+        "status": "ready_for_review",
     }
 
 
@@ -33,7 +33,7 @@ async def record_patch_decision(patch_id: str, payload: PatchDecision):
         "note": payload.note or "Decision submitted via review panel.",
         "status": "recorded",
         "git_branch": "patch/bug-001-candidate-1",
-        "actor": "demo@autopatch.dev"
+        "actor": "demo@autopatch.dev",
     }
 
 
@@ -44,5 +44,5 @@ async def rollback_patch(patch_id: str):
         "patch_id": patch_id,
         "status": "rolled_back",
         "branch": "main",
-        "message": "Patch branch successfully reverted to origin clean state."
+        "message": "Patch branch successfully reverted to origin clean state.",
     }
