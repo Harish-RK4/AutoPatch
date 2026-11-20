@@ -23,10 +23,12 @@ class AutoPatchVoiceSettings:
         self.twilio_account_sid: str = os.getenv("TWILIO_ACCOUNT_SID", "")
         self.twilio_auth_token: str = os.getenv("TWILIO_AUTH_TOKEN", "")
         self.twilio_phone_number: str = os.getenv("TWILIO_PHONE_NUMBER", "")
+        render_url = os.getenv("RENDER_EXTERNAL_URL", "")
         self.twilio_webhook_base_url: str = (
             os.getenv("TWILIO_WEBHOOK_BASE_URL")
             or os.getenv("TWILIO_WEBHOOK_URL")
-            or "https://engaging-briefly-trans-study.trycloudflare.com"
+            or (f"https://{render_url}" if render_url and not render_url.startswith("http") else render_url)
+            or "https://autopatch-9kk9.onrender.com"
         ).rstrip("/")
 
         # Groq LLM Intelligence
