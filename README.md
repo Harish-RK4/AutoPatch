@@ -2,10 +2,18 @@
 
 > Built on the foundational principle of **Build for Trust**. AutoPatch inspects, localizes, repairs, and formally proves defects in polyglot codebases and datasets inside isolated sandboxes before developer approval.
 
-[![CI Backend](https://img.shields.io/badge/pytest-110%20passed-10b981.svg)](docs/BENCHMARKS.md)
+[![Production Frontend](https://img.shields.io/badge/Vercel-Live%20App-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://frontend-theta-two-44.vercel.app)
+[![Production Backend](https://img.shields.io/badge/Render-FastAPI%20Live-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://autopatch-9kk9.onrender.com)
+[![API Docs](https://img.shields.io/badge/Swagger-API%20Docs-85EA2D?style=for-the-badge&logo=swagger&logoColor=black)](https://autopatch-9kk9.onrender.com/docs)
+[![CI Backend](https://img.shields.io/badge/pytest-120%20passed-10b981.svg)](docs/BENCHMARKS.md)
 [![Verification Ladder](https://img.shields.io/badge/Verification%20Ladder-V0%20to%20V4%20Proven-0f766e.svg)](#the-verification-ladder)
-[![LLM Router](https://img.shields.io/badge/LLM%20Router-Gemini%20%7C%20Groq%20%7C%20Ollama%20%7C%20Mock-blue.svg)](#free-tier-friendly-llm-router)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
+### 🌐 Live Production Deployments
+- **Frontend App (Vercel)**: [https://frontend-theta-two-44.vercel.app](https://frontend-theta-two-44.vercel.app)
+- **Backend API (Render)**: [https://autopatch-9kk9.onrender.com](https://autopatch-9kk9.onrender.com)
+- **Interactive API Swagger Docs**: [https://autopatch-9kk9.onrender.com/docs](https://autopatch-9kk9.onrender.com/docs)
+- **Backend Health Check**: [https://autopatch-9kk9.onrender.com/health](https://autopatch-9kk9.onrender.com/health)
 
 ---
 
