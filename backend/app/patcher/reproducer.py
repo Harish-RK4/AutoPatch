@@ -105,9 +105,10 @@ def _build_js_repro_script(issue: dict[str, Any], original_code: str) -> str:
         )
 
     # Generic JS reproducer
+    escaped_code = original_code.replace("`", "\\`")
     return (
         "try {\n"
-        f"  eval(`{original_code.replace('`', '\\`')}`);\n"
+        f"  eval(`{escaped_code}`);\n"
         "  console.log('BUG_NOT_REPRODUCED: executed without error');\n"
         "  process.exit(0);\n"
         "} catch(e) {\n"
