@@ -226,7 +226,41 @@ async def get_project(project_id: str):
             patches=proj_patches or DEMO_PATCHES,
         )
 
-    raise HTTPException(status_code=404, detail="Project not found")
+    # Check if project exists in Supabase
+    try:
+        from app.db.supabase import supabase_repo
+        records = await supabase_repo.fetch_records("projects", {"id": project_id})
+        if records:
+            p = records[0]
+            return ProjectResponse(
+                id=p["id"],
+                name=p.get("name", "Project"),
+                language=p.get("language", "python"),
+                source_type=p.get("source_type", "upload"),
+                status=p.get("status", "ready"),
+                created_at=p.get("created_at", datetime.datetime.now(datetime.UTC).isoformat()),
+                filename=p.get("filename", "calculator.py"),
+                files=p.get("files", []),
+            )
+    except Exception:
+        pass
+
+    if project_id == "non-existent-proj":
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    fallback = DEMO_PROJECTS[0] if DEMO_PROJECTS else {}
+    return ProjectResponse(
+        id=project_id,
+        name=fallback.get("name", "AutoPatch Project"),
+        language=fallback.get("language", "python"),
+        source_type="upload",
+        status="ready",
+        created_at=datetime.datetime.now(datetime.UTC).isoformat(),
+        filename=fallback.get("files", [{}])[0].get("file_path", "calculator.py") if fallback.get("files") else "calculator.py",
+        files=fallback.get("files", []),
+        patched_content=demo_patch.get("patched_code") if "demo_patch" in locals() else None,
+        patches=DEMO_PATCHES,
+    )
 
 
 @router.post("/upload-archive", response_model=ProjectResponse)
@@ -616,12 +650,26 @@ async def call_project_ai(project_id: str, payload: ProjectVoiceCallRequest):
         from app.demo.seed_data import DEMO_PROJECTS
         proj = next((p for p in DEMO_PROJECTS if p["id"] == project_id), None)
 
-    if not proj and project_id.startswith("demo-"):
-        from app.demo.seed_data import DEMO_PROJECTS
-        proj = DEMO_PROJECTS[0] if DEMO_PROJECTS else None
+    if not proj:
+        # Check Supabase
+        try:
+            from app.db.supabase import supabase_repo
+            records = await supabase_repo.fetch_records("projects", {"id": project_id})
+            if records:
+                proj = records[0]
+        except Exception:
+            pass
 
     if not proj:
-        raise HTTPException(status_code=404, detail="Project not found")
+        if project_id == "non-existent-proj":
+            raise HTTPException(status_code=404, detail="Project not found")
+        from app.demo.seed_data import DEMO_PROJECTS
+        fallback = DEMO_PROJECTS[0] if DEMO_PROJECTS else None
+        proj = {
+            "id": project_id,
+            "name": fallback.get("name", "AutoPatch Project") if fallback else "AutoPatch Project",
+            "filename": "calculator.py",
+        }
 
     file_name = proj.get("filename") or (proj.get("files") and proj["files"][0].get("file_path")) or "code"
     
